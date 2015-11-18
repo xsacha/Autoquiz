@@ -51,6 +51,7 @@ Item {
     Component {
         id: detailsDelegate
         Rectangle {
+            NumberAnimation on scale { from: 0.2; to: 1.0; duration: 1000 }
             width: view.cellWidth * 0.9
             height: view.cellHeight * 0.9
             id: rectItem
@@ -63,8 +64,8 @@ Item {
                 GradientStop { position: 1.0; color: status == 0 ? "lightsteelblue" : (status == 1 ? "orange" : "yellow") }
             }
             border.color: "black"
-            border.width: GridView.isCurrentItem ? 3 : 1
-            radius: 5
+            border.width: GridView.isCurrentItem ? 2 : 1
+            radius: 7
             Item {
                 anchors.fill: parent
                 Text {
@@ -97,15 +98,13 @@ Item {
     }
     GridView {
         id: view
-        populate: Transition {
-            NumberAnimation { properties: "x,y"; from: -50; duration: 500 }
-        }
-
         focus: true
         clip: true
         currentIndex: 0
         anchors.left: parent.left
         anchors.leftMargin: 10
+        anchors.top: parent.top
+        anchors.topMargin: 10
         width: parent.width - 100
         height: parent.height
         cellWidth: width / 3
