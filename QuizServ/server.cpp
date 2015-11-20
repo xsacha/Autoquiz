@@ -25,6 +25,11 @@ Server::Server(QObject *parent) : QTcpServer(parent)
     // if we did not find one, use IPv4 localhost
     if (ipAddress.isEmpty())
         ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
+    QFile quizFile("\\\\eqsun2102003\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
+    quizFile.open(QIODevice::WriteOnly);
+    quizFile.write(QString(ipAddress).toLocal8Bit().toBase64());
+    quizFile.flush();
+    quizFile.close();
     qDebug() << "The server is running on\n\nIP: " << ipAddress << "\nport: " << serverPort() << "\n\n";
 }
 

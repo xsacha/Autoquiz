@@ -5,6 +5,7 @@
 #include <QtNetwork/QTcpServer>
 #include <QtNetwork/QTcpSocket>
 #include <QThread>
+#include <QFile>
 
 class Server : public QTcpServer
 {
@@ -16,6 +17,7 @@ protected:
     void incomingConnection(qintptr socketDescriptor) Q_DECL_OVERRIDE;
 
 private:
+    QFile* quizFile;
 };
 
 class ServerThread : public QThread
