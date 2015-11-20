@@ -28,9 +28,8 @@ Server::Server(QObject *parent) : QTcpServer(parent)
     QFile quizFile("\\\\eqsun2102003\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
     quizFile.open(QIODevice::WriteOnly);
     quizFile.write(QString(ipAddress).toLocal8Bit().toBase64());
-    quizFile.flush();
     quizFile.close();
-    qDebug() << "The server is running on\n\nIP: " << ipAddress << "\nport: " << serverPort() << "\n\n";
+    qDebug() << "The server is running.";
 }
 
 void Server::incomingConnection(qintptr socketDescriptor)

@@ -48,6 +48,9 @@ void Client::readDetails()
         return;
 
     _model->addQuiz(QuizInfo("Quiz 1", 2, 30, 40, 40));
+    _model->addQuiz(QuizInfo("Card 1.2.1", 1, 0, 4, 10));
+    _model->addQuiz(QuizInfo("Card 1.2.2", 0, 0, 0, 10));
+    _model->addQuiz(QuizInfo("Card 1.2.3", 0, 0, 0, 10));
     modelChanged();
     QString details;
     in >> details;

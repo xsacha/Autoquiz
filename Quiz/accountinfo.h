@@ -11,10 +11,15 @@ public:
     QuizInfo(const QString &name, const int &status, const int &correct, const int &position, const int &total)
         : _name(name), _status(status), _correct(correct), _position(position), _total(total)
     { }
+    // Name of Quiz to be shown. Example: Quiz 1 or Card 1.2.1
     QString name() const { return _name; }
+    // Status of quiz attempt. 0 = Not started, 1 = In Progress, 2 = Finished
     int status() const { return _status; }
+    // How many were correct
     int correct() const { return _correct; }
+    // How far through Quiz the student is
     int position() const { return _position; }
+    // Total questions for this quiz
     int total() const { return _total; }
 private:
     QString _name;
@@ -50,6 +55,13 @@ public:
         Q_UNUSED(parent);
         return _quizs.count();
     }
+    Q_INVOKABLE int getStatus(int index) {
+        if (index < 0 || index >= _quizs.count())
+            return 2;
+        const QuizInfo &quiz = _quizs[index];
+        return quiz.status();
+    }
+
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const {
         if (index.row() < 0 || index.row() >= _quizs.count())
             return QVariant();
