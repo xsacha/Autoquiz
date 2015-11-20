@@ -7,7 +7,6 @@ Item {
     width: 640
     height: 480
 
-
     RowLayout {
         anchors.centerIn: parent
         spacing: 20
@@ -18,26 +17,7 @@ Item {
         }
         BusyIndicator {
             id: busy
-            running: false
-        }
-        Button {
-            id: loginBtn
-            text: "Login"
-            onClicked: {
-                busy.running = true;
-                visible = false;
-                // Do work
-                loginTimer.start()
-            }
-        }
-        Timer {
-            id: loginTimer
-            interval: 500
-            onTriggered: {
-                info.loggedin = true
-                busy.running = false;
-                loginBtn.visible = true;
-            }
+            running: !(client.loggedin)
         }
     }
 }

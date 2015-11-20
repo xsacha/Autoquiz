@@ -5,7 +5,7 @@
 #include <QQmlComponent>
 #include <QQuickWindow>
 #include <QMessageBox>
-#include "accountinfo.h"
+#include "client.h"
 
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
@@ -44,11 +44,12 @@ int main(int argc, char *argv[])
     // Use system proxy except where not possible
     QNetworkProxyFactory::setUseSystemConfiguration(true);
 
-    AccountInfo info;
+    Client client;
 
     QQmlApplicationEngine engine;
     QQmlContext *context = engine.rootContext();
-    context->setContextProperty("info", &info);
+    context->setContextProperty("client", &client);
+    context->setContextProperty("info", (&client)->accountInfo);
 
     QScopedPointer<QQmlComponent> comp(new QQmlComponent(&engine));
     comp->loadUrl(QUrl(QStringLiteral("qrc:/main.qml")));

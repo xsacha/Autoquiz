@@ -51,7 +51,6 @@ Item {
     Component {
         id: detailsDelegate
         Rectangle {
-            NumberAnimation on scale { from: 0.2; to: 1.0; duration: 1000 }
             width: view.cellWidth * 0.9
             height: view.cellHeight * 0.9
             id: rectItem
@@ -98,6 +97,13 @@ Item {
     }
     GridView {
         id: view
+        populate: Transition {
+            NumberAnimation {
+                property: "x"
+                from: -100
+                duration: 500
+            }
+        }
         focus: true
         clip: true
         currentIndex: 0
@@ -109,7 +115,7 @@ Item {
         height: parent.height
         cellWidth: width / 3
         cellHeight: cellWidth
-        model: detailsModel
+        model: client.model //detailsModel
         delegate: detailsDelegate
     }
 

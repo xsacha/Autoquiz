@@ -1,7 +1,7 @@
 #include "accountinfo.h"
 
 AccountInfo::AccountInfo(QObject *parent)
-    : QObject(parent), _loggedin(false)
+    : QObject(parent)
 {
     // Establish username from login
     char* user = nullptr;
@@ -12,7 +12,5 @@ AccountInfo::AccountInfo(QObject *parent)
 #endif
     if (user != nullptr)
         _user = user;
-
-    client = new Client(_user);
 }
 

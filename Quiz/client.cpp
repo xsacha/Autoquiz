@@ -1,6 +1,7 @@
 #include "client.h"
 #include <QSettings>
 #include <QDataStream>
+#include <QFile>
 
 // Client is started when account info is deemed 'correct' (at start, or when username is changed)
 // It immediately begins connection, followed by sending username
@@ -8,13 +9,16 @@
 // Either disconnect or send keep-alives to maintain contact.
 // Changing username results in us reconnecting with a new username
 
-Client::Client(QString user, QObject *parent)
-    : QTcpSocket(parent), _username(user)
+Client::Client(QObject *parent)
+    : QTcpSocket(parent)
 {
+    accountInfo = new AccountInfo();
+    _username = accountInfo->user();
     connect(this, SIGNAL(connected()), this, SLOT(sendLogin()));
     connect(this, SIGNAL(error(QAbstractSocket::SocketError)),
                 this, SLOT(displayError(QAbstractSocket::SocketError)));
     requestDetails();
+    _model = new QuizModel();
 }
 
 void Client::sendLogin()
@@ -43,6 +47,8 @@ void Client::readDetails()
     if (this->bytesAvailable() < _blockSize)
         return;
 
+    _model->addQuiz(QuizInfo("Quiz 1", 2, 30, 40, 40));
+    modelChanged();
     QString details;
     in >> details;
 
@@ -55,13 +61,11 @@ void Client::displayError(QAbstractSocket::SocketError socketError)
     case QAbstractSocket::RemoteHostClosedError:
         break;
     case QAbstractSocket::HostNotFoundError:
-        qDebug() << "The host was not found. Please check the host name and port settings.";
+        qDebug() << "The host was not found..";
         break;
     case QAbstractSocket::ConnectionRefusedError:
         qDebug() << "The connection was refused by the peer. "
-                                    "Make sure the fortune server is running, "
-                                    "and check that the host name and port "
-                                    "settings are correct.";
+                                    "Make sure the server is running.";
         break;
     default:
         qDebug() << "The following error occurred: " << errorString();
@@ -72,5 +76,12 @@ void Client::displayError(QAbstractSocket::SocketError socketError)
 void Client::requestDetails() {
     _blockSize = 0;
     this->abort();
-    this->connectToHost("10.115.80.187", 57849);
+    // We are grabbing the base64-encoded IP from a common shared drive.
+    // T: drive should be visible to all on a typical EQ setup.
+    QFile quizFile("\\\\eqsun2102003\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
+    quizFile.open(QIODevice::ReadOnly);
+    QString ipAddress = QString(QByteArray::fromBase64(quizFile.readAll()));
+    quizFile.close();
+    // We are using a hardcoded port
+    this->connectToHost(ipAddress, 57849);
 }

@@ -12,11 +12,6 @@ ApplicationWindow {
         Menu {
             title: "File"
             MenuItem {
-                enabled: info.loggedin
-                text: "&Logout"
-                onTriggered: info.loggedin = false
-            }
-            MenuItem {
                 text: "Exit"
                 onTriggered: Qt.quit();
             }
@@ -24,11 +19,11 @@ ApplicationWindow {
     }
 
     LoginForm {
-        visible: !(info.loggedin)
+        visible: !(client.loggedin)
         anchors.fill: parent
     }
     SelectForm {
-        visible: info.loggedin
+        visible: client.loggedin
         anchors.fill: parent
     }
 
