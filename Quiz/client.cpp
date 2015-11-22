@@ -47,14 +47,14 @@ void Client::readDetails()
     if (this->bytesAvailable() < _blockSize)
         return;
 
-    QString details;
-    in >> details;
+    while (!(in.atEnd())) {
+        QString quizName;
+        qint16 status, correct, position, total;
+        in >> quizName >> status >> correct >> position >> total;
+        _model->addQuiz(QuizInfo(quizName, status, correct, position, total));
+    }
     _loggedin = true;
     loggedinChanged();
-    _model->addQuiz(QuizInfo("Quiz 1", 2, 30, 40, 40));
-    _model->addQuiz(QuizInfo("Card 1.2.1", 1, 0, 4, 10));
-    _model->addQuiz(QuizInfo("Card 1.2.2", 0, 0, 0, 10));
-    _model->addQuiz(QuizInfo("Card 1.2.3", 0, 0, 0, 10));
     modelChanged();
 }
 
@@ -81,7 +81,8 @@ void Client::requestDetails() {
     this->abort();
     // We are grabbing the base64-encoded IP from a common shared drive.
     // T: drive should be visible to all on a typical EQ setup.
-    QFile quizFile("\\\\eqsun2102003\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
+    // We use 10.113.28.3 or eqsun2102003 -> Education Queensland | School Code | Drive 3
+    QFile quizFile("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
     if (quizFile.exists()) {
         quizFile.open(QIODevice::ReadOnly);
         QString ipAddress = QString(QByteArray::fromBase64(quizFile.readAll()));
