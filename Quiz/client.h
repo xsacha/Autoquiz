@@ -26,12 +26,12 @@ public slots:
     void displayError(QAbstractSocket::SocketError socketError);
 
 signals:
-    void loggedinChanged(const bool &loggedin);
+    void loggedinChanged();
     void modelChanged();
 
 private:
     QString _username;
-    bool    _connected = false;
+    bool    _connected;
     qint16  _blockSize;
     bool    _loggedin;
     QuizModel* _model;

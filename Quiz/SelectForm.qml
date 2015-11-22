@@ -6,6 +6,12 @@ Item {
     id: root
     width: 640
     height: 480
+    Loader {
+        id: question
+        property int currentQuiz: view.currentIndex
+        anchors.fill: parent
+    }
+
     Component {
         id: detailsDelegate
         Rectangle {
@@ -55,6 +61,7 @@ Item {
     }
     GridView {
         id: view
+        visible: question.source == ""
         populate: Transition {
             NumberAnimation {
                 property: "x"
@@ -78,6 +85,7 @@ Item {
     }
 
     ColumnLayout {
+        visible: question.source == ""
         anchors.right: parent.right
         anchors.rightMargin: 10
         anchors.verticalCenter: parent.verticalCenter
@@ -86,10 +94,11 @@ Item {
             property int currentStatus: view.model.getStatus(view.currentIndex)
             text: currentStatus === 2 ? "Done" : (currentStatus === 1 ? "Resume" : "Start")
             enabled: currentStatus !== 2
+            onClicked: question.source = "QuestionForm.qml"
         }
         /*Button {
             text: "Logout"
-            onClicked: info.loggedin = false
+            onClicked: client.loggedin = false
         }*/
     }
 }

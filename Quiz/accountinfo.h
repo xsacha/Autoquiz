@@ -55,11 +55,29 @@ public:
         Q_UNUSED(parent);
         return _quizs.count();
     }
+    Q_INVOKABLE QString getName(int index) {
+        if (index < 0 || index >= _quizs.count())
+            return "";
+        const QuizInfo &quiz = _quizs[index];
+        return quiz.name();
+    }
     Q_INVOKABLE int getStatus(int index) {
         if (index < 0 || index >= _quizs.count())
             return 2;
         const QuizInfo &quiz = _quizs[index];
         return quiz.status();
+    }
+    Q_INVOKABLE int getPosition(int index) {
+        if (index < 0 || index >= _quizs.count())
+            return -1;
+        const QuizInfo &quiz = _quizs[index];
+        return quiz.position();
+    }
+    Q_INVOKABLE int getTotal(int index) {
+        if (index < 0 || index >= _quizs.count())
+            return -1;
+        const QuizInfo &quiz = _quizs[index];
+        return quiz.total();
     }
 
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const {

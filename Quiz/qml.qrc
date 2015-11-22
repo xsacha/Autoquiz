@@ -3,5 +3,6 @@
         <file>main.qml</file>
         <file>LoginForm.qml</file>
         <file>SelectForm.qml</file>
+        <file>QuestionForm.qml</file>
     </qresource>
 </RCC>

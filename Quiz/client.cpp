@@ -10,15 +10,15 @@
 // Changing username results in us reconnecting with a new username
 
 Client::Client(QObject *parent)
-    : QTcpSocket(parent)
+    : QTcpSocket(parent), _connected(false), _loggedin(false)
 {
     accountInfo = new AccountInfo();
     _username = accountInfo->user();
     connect(this, SIGNAL(connected()), this, SLOT(sendLogin()));
     connect(this, SIGNAL(error(QAbstractSocket::SocketError)),
-                this, SLOT(displayError(QAbstractSocket::SocketError)));
-    requestDetails();
+            this, SLOT(displayError(QAbstractSocket::SocketError)));
     _model = new QuizModel();
+    requestDetails();
 }
 
 void Client::sendLogin()
@@ -47,15 +47,15 @@ void Client::readDetails()
     if (this->bytesAvailable() < _blockSize)
         return;
 
+    QString details;
+    in >> details;
+    _loggedin = true;
+    loggedinChanged();
     _model->addQuiz(QuizInfo("Quiz 1", 2, 30, 40, 40));
     _model->addQuiz(QuizInfo("Card 1.2.1", 1, 0, 4, 10));
     _model->addQuiz(QuizInfo("Card 1.2.2", 0, 0, 0, 10));
     _model->addQuiz(QuizInfo("Card 1.2.3", 0, 0, 0, 10));
     modelChanged();
-    QString details;
-    in >> details;
-
-    qDebug() << "Received: " << details;
 }
 
 void Client::displayError(QAbstractSocket::SocketError socketError)
@@ -68,7 +68,7 @@ void Client::displayError(QAbstractSocket::SocketError socketError)
         break;
     case QAbstractSocket::ConnectionRefusedError:
         qDebug() << "The connection was refused by the peer. "
-                                    "Make sure the server is running.";
+                    "Make sure the server is running.";
         break;
     default:
         qDebug() << "The following error occurred: " << errorString();
@@ -82,9 +82,20 @@ void Client::requestDetails() {
     // We are grabbing the base64-encoded IP from a common shared drive.
     // T: drive should be visible to all on a typical EQ setup.
     QFile quizFile("\\\\eqsun2102003\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
-    quizFile.open(QIODevice::ReadOnly);
-    QString ipAddress = QString(QByteArray::fromBase64(quizFile.readAll()));
-    quizFile.close();
-    // We are using a hardcoded port
-    this->connectToHost(ipAddress, 57849);
+    if (quizFile.exists()) {
+        quizFile.open(QIODevice::ReadOnly);
+        QString ipAddress = QString(QByteArray::fromBase64(quizFile.readAll()));
+        quizFile.close();
+        // We are using a hardcoded port
+        this->connectToHost(ipAddress, 57849);
+    } else {
+        _loggedin = true;
+        loggedinChanged();
+        _model->addQuiz(QuizInfo("Quiz 1", 2, 30, 40, 40));
+        _model->addQuiz(QuizInfo("Card 1.2.1", 1, 0, 4, 10));
+        _model->addQuiz(QuizInfo("Card 1.2.2", 0, 0, 0, 10));
+        _model->addQuiz(QuizInfo("Card 1.2.3", 0, 0, 0, 10));
+        modelChanged();
+        // Not connected to network. So in simulation, _connected = false
+    }
 }
