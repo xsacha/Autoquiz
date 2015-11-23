@@ -24,12 +24,12 @@ Item {
             }
             gradient: Gradient {
                 GradientStop { position: 0.0; color: rectItem.GridView.isCurrentItem ? "#ddddddff" : "white" }
-                GradientStop { position: 1.0; color: status == 0 ? "lightsteelblue" : (status == 1 ? "orange" : "yellow") }
+                GradientStop { position: 1.0; color: mode == 0 ? "lightsteelblue" : (mode == 1 ? "orange" : "yellow") }
             }
             border.color: "black"
             border.width: GridView.isCurrentItem ? 2 : 1
             radius: 7
-            Item {
+            ColumnLayout {
                 anchors.fill: parent
                 Text {
                     anchors.fill: parent
@@ -38,68 +38,82 @@ Item {
                     text: name
                     anchors.top: parent.top
                 }
-                Text {
-                    visible: status == 0
-                    text: "Not yet started"
-                    font.pointSize: 12
-                    anchors.centerIn: parent
-                }
-                Text {
-                    visible: status == 1
-                    text: "Partial Complete\n\n(Question " + position + "/" + total + ")"
-                    font.pointSize: 12
-                    anchors.centerIn: parent
-                }
-                Text {
-                    visible: status == 2
-                    text: "Complete\n\n(" + correct + "/" + total + ") Correct"
-                    font.pointSize: 12
-                    anchors.centerIn: parent
+                Item {
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    Image {
+                        fillMode: Image.PreserveAspectFit
+                        anchors.fill: parent
+                        source: (mode == 2 ? "complete.png" : (mode == 1 ? "suspend.png" : "play.png"))
+                        opacity: 0.2
+                    }
+
+                    Text {
+                        visible: mode == 0
+                        text: "Not yet started"
+                        font.pointSize: 12
+                        anchors.centerIn: parent
+                    }
+                    Text {
+                        visible: mode == 1
+                        text: "Partial Complete\n\n(Question " + position + "/" + total + ")"
+                        font.pointSize: 12
+                        horizontalAlignment: Text.AlignHCenter
+                        anchors.centerIn: parent
+                    }
+                    Text {
+                        visible: mode == 2
+                        text: "Complete\n\n(" + correct + "/" + total + " Correct)"
+                        font.pointSize: 12
+                        horizontalAlignment: Text.AlignHCenter
+                        anchors.centerIn: parent
+                    }
+
                 }
             }
         }
-    }
-    GridView {
-        id: view
-        visible: question.source == ""
-        populate: Transition {
-            NumberAnimation {
-                property: "x"
-                from: -100
-                duration: 500
-            }
-        }
-        focus: true
-        clip: true
-        currentIndex: -1
-        anchors.left: parent.left
-        anchors.leftMargin: 10
-        anchors.top: parent.top
-        anchors.topMargin: 10
-        width: parent.width - 100
-        height: parent.height
-        cellWidth: width / 3
-        cellHeight: cellWidth
-        model: client.model
-        delegate: detailsDelegate
     }
 
     ColumnLayout {
         visible: question.source == ""
-        anchors.right: parent.right
-        anchors.rightMargin: 10
-        anchors.verticalCenter: parent.verticalCenter
-        height: parent.height
+        anchors.fill: parent
+        anchors.margins: 10
+        spacing: 10
+
+        Text {
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignCenter
+            horizontalAlignment: Text.AlignHCenter
+            text: "Welcome, " + info.user
+            font.pointSize: 14
+        }
+        GridView {
+            id: view
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            populate: Transition {
+                NumberAnimation {
+                    property: "x"
+                    from: -100
+                    duration: 500
+                }
+            }
+            focus: true
+            clip: true
+            currentIndex: -1
+            width: Layout.width
+            height: Layout.height
+            cellWidth: width / 3
+            cellHeight: cellWidth * 2 / 3
+            model: client.model
+            delegate: detailsDelegate
+        }
         Button {
-            property int currentStatus: view.model.getStatus(view.currentIndex)
-            text: currentStatus === 2 ? "Done" : (currentStatus === 1 ? "Resume" : "Start")
-            enabled: currentStatus !== 2
+            Layout.alignment: Qt.AlignCenter
+            property int currentmode: view.model.getMode(view.currentIndex)
+            text: currentmode === 2 ? "Done" : (currentmode === 1 ? "Resume" : "Start")
+            enabled: currentmode !== 2
             onClicked: question.source = "QuestionForm.qml"
         }
-        /*Button {
-            text: "Logout"
-            onClicked: client.loggedin = false
-        }*/
     }
 }
-

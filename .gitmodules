@@ -1,0 +1,3 @@
+[submodule "QuizServ/QtXlsxWriter"]
+	path = QuizServ/QtXlsxWriter
+	url = https://github.com/dbzhang800/QtXlsxWriter

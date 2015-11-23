@@ -8,13 +8,13 @@
 class QuizInfo
 {
 public:
-    QuizInfo(const QString &name, const int &status, const int &correct, const int &position, const int &total)
-        : _name(name), _status(status), _correct(correct), _position(position), _total(total)
+    QuizInfo(const QString &name, const int &mode, const int &correct, const int &position, const int &total)
+        : _name(name), _mode(mode), _correct(correct), _position(position), _total(total)
     { }
     // Name of Quiz to be shown. Example: Quiz 1 or Card 1.2.1
     QString name() const { return _name; }
-    // Status of quiz attempt. 0 = Not started, 1 = In Progress, 2 = Finished
-    int status() const { return _status; }
+    // mode of quiz attempt. 0 = Not started, 1 = In Progress, 2 = Finished
+    int mode() const { return _mode; }
     // How many were correct
     int correct() const { return _correct; }
     // How far through Quiz the student is
@@ -23,7 +23,7 @@ public:
     int total() const { return _total; }
 private:
     QString _name;
-    int _status;
+    int _mode;
     int _correct;
     int _position;
     int _total;
@@ -35,7 +35,7 @@ class QuizModel : public QAbstractListModel
 public:
     enum QuizRoles {
         NameRole = Qt::UserRole + 1,
-        StatusRole,
+        ModeRole,
         CorrectRole,
         PositionRole,
         TotalRole
@@ -61,11 +61,11 @@ public:
         const QuizInfo &quiz = _quizs[index];
         return quiz.name();
     }
-    Q_INVOKABLE int getStatus(int index) {
+    Q_INVOKABLE int getMode(int index) {
         if (index < 0 || index >= _quizs.count())
             return 2;
         const QuizInfo &quiz = _quizs[index];
-        return quiz.status();
+        return quiz.mode();
     }
     Q_INVOKABLE int getPosition(int index) {
         if (index < 0 || index >= _quizs.count())
@@ -87,8 +87,8 @@ public:
         const QuizInfo &quiz = _quizs[index.row()];
         if (role == NameRole)
             return quiz.name();
-        else if (role == StatusRole)
-            return quiz.status();
+        else if (role == ModeRole)
+            return quiz.mode();
         else if (role == CorrectRole)
             return quiz.correct();
         else if (role == PositionRole)
@@ -101,7 +101,7 @@ protected:
     QHash<int, QByteArray> roleNames() const {
         QHash<int, QByteArray> roles;
         roles[NameRole] = "name";
-        roles[StatusRole] = "status";
+        roles[ModeRole] = "mode";
         roles[CorrectRole] = "correct";
         roles[PositionRole] = "position";
         roles[TotalRole] = "total";

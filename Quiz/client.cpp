@@ -49,9 +49,9 @@ void Client::readDetails()
 
     while (!(in.atEnd())) {
         QString quizName;
-        qint16 status, correct, position, total;
-        in >> quizName >> status >> correct >> position >> total;
-        _model->addQuiz(QuizInfo(quizName, status, correct, position, total));
+        qint16 mode, correct, position, total;
+        in >> quizName >> mode >> correct >> position >> total;
+        _model->addQuiz(QuizInfo(quizName, mode, correct, position, total));
     }
     _loggedin = true;
     loggedinChanged();

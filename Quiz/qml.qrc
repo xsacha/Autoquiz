@@ -4,5 +4,8 @@
         <file>LoginForm.qml</file>
         <file>SelectForm.qml</file>
         <file>QuestionForm.qml</file>
+        <file>complete.png</file>
+        <file>play.png</file>
+        <file>suspend.png</file>
     </qresource>
 </RCC>
