@@ -13,3 +13,6 @@ SOURCES += main.cpp \
 HEADERS += \
     server.h
 
+DEFINES += XLSX_NO_LIB
+include(QtXlsxWriter/src/xlsx/qtxlsx.pri)
+

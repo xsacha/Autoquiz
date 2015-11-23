@@ -8,20 +8,22 @@ Item {
     width: 640
     height: 480
     property int currentQuiz: (parent === null) ? -1 : parent.currentQuiz;
+    RowLayout {
+        Layout.fillWidth: true
     Text {
-        anchors.top: parent.top
-        anchors.left: parent.left
+        Layout.alignment: Qt.AlignLeft
         text: client.model.getName(currentQuiz)
+        font.pointSize: 14
     }
     Text {
-        anchors.top: parent.top
-        anchors.horizontalCenter: parent.horizontalCenter
+        Layout.alignment: Qt.AlignCenter
         text: "Question " + (client.model.getPosition(currentQuiz) + 1) + "/" + client.model.getTotal(currentQuiz)
+        font.pointSize: 14
     }
     Text {
-        anchors.top: parent.top
-        anchors.right: parent.right
+        Layout.alignment: Qt.AlignRight
         text: ""
+    }
     }
     Button {
         anchors.bottom: parent.bottom

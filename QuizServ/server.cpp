@@ -1,8 +1,9 @@
 #include "server.h"
 #include <QtNetwork/QNetworkInterface>
 #include <QDataStream>
-#include <QSqlDatabase>
-#include <QSqlQuery>
+#include <xlsxdocument.h>
+//#include <QSqlDatabase>
+//#include <QSqlQuery>
 
 Server::Server(QObject *parent) : QTcpServer(parent)
 {
@@ -75,22 +76,35 @@ void ServerThread::run()
         tcpSocket.write(block);
     }
     tcpSocket.disconnectFromHost();
-    tcpSocket.waitForDisconnected();
+    if (tcpSocket.state() == QAbstractSocket::UnconnectedState ||
+            tcpSocket.waitForDisconnected(1000))
+        tcpSocket.close();
 }
 
+// Using the QtXlsx third-party plugin, we can manipulate Excel 2007+ files from right here.
 void ServerThread::readExcelDatabase(QString user) {
-    QSqlDatabase excel = QSqlDatabase::addDatabase("QODBC");
-    QString file = "C:\\Test.xls";
-    excel.setDatabaseName("DRIVER={Microsoft Excel Driver (*.xls)};DBQ=" + file);
+    QXlsx::Document xlsx("C:\\Test.xlsx");
 
-    if(excel.open())
+    // get the first sheet
+    QList<QString> sheetName = xlsx.sheetNames();
+    if (!sheetName[0].isEmpty())
     {
-        QSqlQuery query("select name, quiz1 from [Sheet1$]");
-        while (query.next()) {
-                        qDebug() << query.value(0).toString() << query.value(1).toInt();
-                    }
-    } else {
-        qDebug() << "Failed";
+        QXlsx::Worksheet *sheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(sheetName[0]));
+        if(sheet)
+        {
+            QXlsx::CellRange range = xlsx.dimension();
+
+            // Cells are 1-based index
+            for (int row = 1; row <= range.lastRow(); row++) {
+                QString name = xlsx.read(row, 1).toString();
+                if (name == user) {
+                    // We have a match in the database with the user supplied.
+                    // Now we determine their quizzes / scores / positions based on the database.
+                    // We probably want to organise a format that is able to include all quizzes,
+                    // as the current format only supports a single quiz.
+                    qDebug() << xlsx.read(row, 2).toInt();
+                }
+            }
+        }
     }
-    excel.close();
 }
