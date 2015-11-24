@@ -11,39 +11,18 @@
 // Changing username results in us reconnecting with a new username
 
 Client::Client(QObject *parent)
-    : QTcpSocket(parent), _connected(false), _loggedin(false)
+    : QTcpSocket(parent), _connected(false), _loggedin(false), _sending(false)
 {
     accountInfo = new AccountInfo();
     _username = accountInfo->user();
+    connect(this, SIGNAL(connected()), this, SLOT(sendData()));
+    connect(this, SIGNAL(readyRead()), this, SLOT(readResponse()));
     connect(this, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(displayError(QAbstractSocket::SocketError)));
     _model = new QuizModel();
 }
 
-void Client::sendLogin()
-{
-    disconnect(this, SIGNAL(connected()), this, SLOT(sendLogin()));
-    _connected = true;
-    QByteArray block;
-    QDataStream out(&block, QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_5_4);
-    out << "details" << _username;
-    this->write(block);
-    connect(this, SIGNAL(readyRead()), this, SLOT(readDetails()));
-}
-
-void Client::sendAnswer()
-{
-    connect(this, SIGNAL(connected()), this, SLOT(sendAnswer()));
-    QByteArray block;
-    QDataStream out(&block, QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_5_4);
-    out << "details" << _username;
-    this->write(block);
-    connect(this, SIGNAL(readyRead()), this, SLOT(readConfirm()));
-}
-
-void Client::readDetails()
+void Client::readResponse()
 {
     QDataStream in(this);
     in.setVersion(QDataStream::Qt_5_4);
@@ -58,6 +37,8 @@ void Client::readDetails()
     if (this->bytesAvailable() < _blockSize)
         return;
 
+    if (dataPacket.contains("details")) {
+        // Populate model with details
     while (!(in.atEnd())) {
         QString quizName;
         qint16 mode, correct, position, total;
@@ -67,27 +48,13 @@ void Client::readDetails()
     _loggedin = true;
     loggedinChanged();
     modelChanged();
-}
-
-void Client::readConfirm()
-{
-    QDataStream in(this);
-    in.setVersion(QDataStream::Qt_5_4);
-
-    if (_blockSize == 0) {
-        if (this->bytesAvailable() < (int)sizeof(quint16))
-            return;
-
-        in >> _blockSize;
-    }
-
-    if (this->bytesAvailable() < _blockSize)
-        return;
-
-    while (!(in.atEnd())) {
-        QString confirmText;
-        in >> confirmText;
-        // If this is "Confirmed" we are OK. Maybe check this?
+    } else if (dataPacket.contains("update")) {
+        // Check confirm response
+        while (!(in.atEnd())) {
+            QString confirmText;
+            in >> confirmText;
+            // If this is "Confirmed" we are OK. Maybe check this?
+        }
     }
 }
 
@@ -107,9 +74,10 @@ void Client::displayError(QAbstractSocket::SocketError socketError)
         qDebug() << "The following error occurred: " << errorString();
     }
     _connected = false;
+    _sending = false;
 }
 
-int Client::startConnection() {
+void Client::startConnection() {
     _blockSize = 0;
     this->abort();
     // We are grabbing the base64-encoded IP from a common shared drive.
@@ -122,25 +90,41 @@ int Client::startConnection() {
         quizFile.close();
         // We are using a hardcoded port
         this->connectToHost(ipAddress, 57849);
-        return 1;
-    } else
-        return 0;
-}
-
-void Client::requestDetails() {
-    if (this->state() == QAbstractSocket::ConnectedState || _model->rowCount() > 0 )
-        return;
-
-    _blockSize = 0;
-    this->abort();
-    connect(this, SIGNAL(connected()), this, SLOT(sendLogin()));
-    if (startConnection() == 1) {
         // We are on a LAN so if it doesn't connect in 1.5 seconds, it is never going to connect
         // Re-attempt in 1.5 seconds, which will run this code again if not connected and no model exists.
-        QTimer::singleShot(1500, this, SLOT(requestDetails()));
+        QTimer::singleShot(1500, this, SLOT(startConnection()));
     } else {
         // No server turned on. Notify user?
         // Try again in 5 seconds.
-        QTimer::singleShot(5000, this, SLOT(requestDetails()));
+        QTimer::singleShot(5000, this, SLOT(startConnection()));
     }
+}
+
+void Client::updateDetails() {
+    _sending = true;
+    if (this->state() == QAbstractSocket::ConnectedState)
+        return;
+    connect(this, SIGNAL(connected()), this, SLOT(sendData()));
+    QDataStream out(&dataPacket, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_5_4);
+    out << "update" << _username;
+    startConnection();
+}
+
+void Client::requestDetails() {
+    _sending = true;
+    if (this->state() == QAbstractSocket::ConnectedState)
+        return;
+
+    QDataStream out(&dataPacket, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_5_4);
+    out << "details" << _username;
+    startConnection();
+}
+
+void Client::sendData()
+{
+    _sending = false;
+    _connected = true;
+    this->write(dataPacket);
 }

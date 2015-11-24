@@ -11,6 +11,7 @@ class Client : public QTcpSocket
     Q_OBJECT
 public:
     Q_PROPERTY(bool    loggedin MEMBER _loggedin NOTIFY loggedinChanged)
+    Q_PROPERTY(bool    sending MEMBER  _sending NOTIFY sendingChanged)
     Q_PROPERTY(QAbstractListModel* model READ model() NOTIFY modelChanged)
     explicit Client(QObject *parent = 0);
     AccountInfo* accountInfo;
@@ -20,16 +21,17 @@ public:
     }
 
 public slots:
-    void sendLogin();
-    Q_INVOKABLE void sendAnswer();
+    void sendData();
+    Q_INVOKABLE void updateDetails();
     Q_INVOKABLE void requestDetails();
-    void readAnswer();
-    void readDetails();
+    void readResponse();
+    void startConnection();
     void displayError(QAbstractSocket::SocketError socketError);
 
 signals:
     void loggedinChanged();
     void modelChanged();
+    void sendingChanged();
 
 private:
     QString _username;
@@ -37,6 +39,8 @@ private:
     qint16  _blockSize;
     bool    _loggedin;
     QuizModel* _model;
+    bool    _sending;
+    QByteArray dataPacket;
 };
 
 #endif // CLIENT_H
