@@ -15,7 +15,6 @@ Client::Client(QObject *parent)
 {
     accountInfo = new AccountInfo();
     _username = accountInfo->user();
-    connect(this, SIGNAL(connected()), this, SLOT(sendLogin()));
     connect(this, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(displayError(QAbstractSocket::SocketError)));
     _model = new QuizModel();
@@ -23,13 +22,25 @@ Client::Client(QObject *parent)
 
 void Client::sendLogin()
 {
+    disconnect(this, SIGNAL(connected()), this, SLOT(sendLogin()));
     _connected = true;
     QByteArray block;
     QDataStream out(&block, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_4);
-    out << _username;
+    out << "details" << _username;
     this->write(block);
     connect(this, SIGNAL(readyRead()), this, SLOT(readDetails()));
+}
+
+void Client::sendAnswer()
+{
+    connect(this, SIGNAL(connected()), this, SLOT(sendAnswer()));
+    QByteArray block;
+    QDataStream out(&block, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_5_4);
+    out << "details" << _username;
+    this->write(block);
+    connect(this, SIGNAL(readyRead()), this, SLOT(readConfirm()));
 }
 
 void Client::readDetails()
@@ -58,6 +69,28 @@ void Client::readDetails()
     modelChanged();
 }
 
+void Client::readConfirm()
+{
+    QDataStream in(this);
+    in.setVersion(QDataStream::Qt_5_4);
+
+    if (_blockSize == 0) {
+        if (this->bytesAvailable() < (int)sizeof(quint16))
+            return;
+
+        in >> _blockSize;
+    }
+
+    if (this->bytesAvailable() < _blockSize)
+        return;
+
+    while (!(in.atEnd())) {
+        QString confirmText;
+        in >> confirmText;
+        // If this is "Confirmed" we are OK. Maybe check this?
+    }
+}
+
 void Client::displayError(QAbstractSocket::SocketError socketError)
 {
     switch (socketError) {
@@ -76,9 +109,7 @@ void Client::displayError(QAbstractSocket::SocketError socketError)
     _connected = false;
 }
 
-void Client::requestDetails() {
-    if (this->state() == QAbstractSocket::ConnectedState || _model->rowCount() > 0 )
-        return;
+int Client::startConnection() {
     _blockSize = 0;
     this->abort();
     // We are grabbing the base64-encoded IP from a common shared drive.
@@ -91,6 +122,19 @@ void Client::requestDetails() {
         quizFile.close();
         // We are using a hardcoded port
         this->connectToHost(ipAddress, 57849);
+        return 1;
+    } else
+        return 0;
+}
+
+void Client::requestDetails() {
+    if (this->state() == QAbstractSocket::ConnectedState || _model->rowCount() > 0 )
+        return;
+
+    _blockSize = 0;
+    this->abort();
+    connect(this, SIGNAL(connected()), this, SLOT(sendLogin()));
+    if (startConnection() == 1) {
         // We are on a LAN so if it doesn't connect in 1.5 seconds, it is never going to connect
         // Re-attempt in 1.5 seconds, which will run this code again if not connected and no model exists.
         QTimer::singleShot(1500, this, SLOT(requestDetails()));
@@ -98,15 +142,5 @@ void Client::requestDetails() {
         // No server turned on. Notify user?
         // Try again in 5 seconds.
         QTimer::singleShot(5000, this, SLOT(requestDetails()));
-        /*
-        _loggedin = true;
-        loggedinChanged();
-        _model->addQuiz(QuizInfo("Quiz 1", 2, 30, 40, 40));
-        _model->addQuiz(QuizInfo("Card 1.2.1", 1, 0, 4, 10));
-        _model->addQuiz(QuizInfo("Card 1.2.2", 0, 0, 0, 10));
-        _model->addQuiz(QuizInfo("Card 1.2.3", 0, 0, 0, 10));
-        modelChanged();
-        // Not connected to network. So in simulation, _connected = false
-        */
     }
 }

@@ -21,7 +21,9 @@ public:
 
 public slots:
     void sendLogin();
+    Q_INVOKABLE void sendAnswer();
     Q_INVOKABLE void requestDetails();
+    void readAnswer();
     void readDetails();
     void displayError(QAbstractSocket::SocketError socketError);
 
