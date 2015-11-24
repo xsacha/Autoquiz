@@ -175,7 +175,7 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
     return block;
 }
 
-void updateUserAnswer(QString username, QString quizName, int question, QString answer) {
+void ServerThread::updateUserAnswer(QString username, QString quizName, int question, QString answer) {
     QXlsx::Document xlsx(XLSX_FILE);
 
     QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(QString("%1 Results").arg(quizName)));
