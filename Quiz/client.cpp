@@ -2,6 +2,7 @@
 #include <QSettings>
 #include <QDataStream>
 #include <QFile>
+#include <QTimer>
 
 // Client is started when account info is deemed 'correct' (at start, or when username is changed)
 // It immediately begins connection, followed by sending username
@@ -18,7 +19,6 @@ Client::Client(QObject *parent)
     connect(this, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(displayError(QAbstractSocket::SocketError)));
     _model = new QuizModel();
-    requestDetails();
 }
 
 void Client::sendLogin()
@@ -77,6 +77,8 @@ void Client::displayError(QAbstractSocket::SocketError socketError)
 }
 
 void Client::requestDetails() {
+    if (this->state() == QAbstractSocket::ConnectedState || _model->rowCount() > 0 )
+        return;
     _blockSize = 0;
     this->abort();
     // We are grabbing the base64-encoded IP from a common shared drive.
@@ -89,7 +91,14 @@ void Client::requestDetails() {
         quizFile.close();
         // We are using a hardcoded port
         this->connectToHost(ipAddress, 57849);
+        // We are on a LAN so if it doesn't connect in 1.5 seconds, it is never going to connect
+        // Re-attempt in 1.5 seconds, which will run this code again if not connected and no model exists.
+        QTimer::singleShot(1500, this, SLOT(requestDetails()));
     } else {
+        // No server turned on. Notify user?
+        // Try again in 5 seconds.
+        QTimer::singleShot(5000, this, SLOT(requestDetails()));
+        /*
         _loggedin = true;
         loggedinChanged();
         _model->addQuiz(QuizInfo("Quiz 1", 2, 30, 40, 40));
@@ -98,5 +107,6 @@ void Client::requestDetails() {
         _model->addQuiz(QuizInfo("Card 1.2.3", 0, 0, 0, 10));
         modelChanged();
         // Not connected to network. So in simulation, _connected = false
+        */
     }
 }

@@ -26,7 +26,7 @@ class ServerThread : public QThread
 
 public:
     ServerThread(int socketDescriptor, QObject *parent);
-    void readExcelDatabase(QString user);
+    QByteArray readExcelDatabase(QString user);
 
     void run() Q_DECL_OVERRIDE;
 

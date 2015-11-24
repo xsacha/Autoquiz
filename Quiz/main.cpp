@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     app.setOrganizationName("PRSHS");
     app.setOrganizationDomain("prshs.edu.au");
     app.setApplicationName("Quiz");
-    app.setApplicationVersion("0.0.1");
+    app.setApplicationVersion("0.0.2");
 
     // Use system proxy except where not possible
     QNetworkProxyFactory::setUseSystemConfiguration(true);

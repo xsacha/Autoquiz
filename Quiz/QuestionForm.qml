@@ -9,19 +9,21 @@ Item {
     height: 480
     property int currentQuiz: (parent === null) ? -1 : parent.currentQuiz;
     RowLayout {
+        width: parent.width
         Text {
-            Layout.alignment: Qt.AlignLeft
+            Layout.alignment: Qt.AlignLeft | Qt.AlignTop
             text: client.model.getName(currentQuiz)
             font.pointSize: 14
         }
         Text {
-            Layout.alignment: Qt.AlignCenter
+            Layout.alignment: Qt.AlignHCenter  | Qt.AlignTop
             text: "Question " + (client.model.getPosition(currentQuiz) + 1) + "/" + client.model.getTotal(currentQuiz)
             font.pointSize: 14
         }
         Text {
-            Layout.alignment: Qt.AlignRight
-            text: ""
+            Layout.alignment: Qt.AlignRight  | Qt.AlignTop
+            text: info.user.split(' ')[0]
+            font.pointSize: 14
         }
     }
     Button {

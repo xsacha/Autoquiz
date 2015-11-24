@@ -15,6 +15,13 @@ Item {
             property string username: info.user
             text: (busy.running ? "Logging in as " : "") + "<b>" + username + "</b>"
         }
+        // Create a short delay so we can start UI before networking.
+        Timer {
+            interval: 100
+            running: true
+            onTriggered: client.requestDetails()
+        }
+
         BusyIndicator {
             id: busy
             running: !(client.loggedin)

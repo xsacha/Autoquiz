@@ -7,12 +7,6 @@
 
 Server::Server(QObject *parent) : QTcpServer(parent)
 {
-    if (!listen(QHostAddress::AnyIPv4, 57849)) {
-        qDebug() << "Unable to start the server: " << errorString();
-
-        close();
-        return;
-    }
     QString ipAddress;
     QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
     // use the first non-localhost IPv4 address
@@ -26,10 +20,24 @@ Server::Server(QObject *parent) : QTcpServer(parent)
     // if we did not find one, use IPv4 localhost
     if (ipAddress.isEmpty())
         ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
-    QFile quizFile("\\\\eqsun2102003\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
+    QFile quizFile("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
     quizFile.open(QIODevice::WriteOnly);
+    if (!(quizFile.isOpen()))
+    {
+        qDebug() << "Unable to create file on network.";
+        exit(0);
+        return;
+    }
     quizFile.write(QString(ipAddress).toLocal8Bit().toBase64());
     quizFile.close();
+
+    if (!listen(QHostAddress::AnyIPv4, 57849)) {
+        qDebug() << "Unable to start the server: " << errorString();
+
+        close();
+        exit(0);
+        return;
+    }
     qDebug() << "The server is running.";
 }
 
@@ -62,17 +70,7 @@ void ServerThread::run()
 
     if (!(username.isEmpty())) {
         qDebug() << "User " << username << " has requested details.";
-        readExcelDatabase(username);
-        QByteArray block;
-        QDataStream out(&block, QIODevice::WriteOnly);
-        out.setVersion(QDataStream::Qt_5_4);
-        out << (quint16)0;
-        out << QString("Quiz 1") << (quint16)2 << (quint16)30 << (quint16)40 << (quint16)40;
-        out << QString("Card 1.2.1") << (quint16)1 << (quint16)0 << (quint16)4 << (quint16)10;
-        out << QString("Card 1.2.2") << (quint16)0 << (quint16)0 << (quint16)0 << (quint16)10;
-        out << QString("Card 1.2.3") << (quint16)0 << (quint16)0 << (quint16)0 << (quint16)10;
-        out.device()->seek(0);
-        out << (quint16)(block.size() - sizeof(quint16));
+        QByteArray block = readExcelDatabase(username);
         tcpSocket.write(block);
     }
     tcpSocket.disconnectFromHost();
@@ -82,29 +80,60 @@ void ServerThread::run()
 }
 
 // Using the QtXlsx third-party plugin, we can manipulate Excel 2007+ files from right here.
-void ServerThread::readExcelDatabase(QString user) {
+QByteArray ServerThread::readExcelDatabase(QString user) {
+    // Begin block writing for C++ model
+    QByteArray block;
+    QDataStream out(&block, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_5_4);
+    out << (quint16)0;
+
     QXlsx::Document xlsx("C:\\Test.xlsx");
 
-    // get the first sheet
-    QList<QString> sheetName = xlsx.sheetNames();
-    if (!sheetName[0].isEmpty())
+    QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
+    if(summarySheet)
     {
-        QXlsx::Worksheet *sheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(sheetName[0]));
-        if(sheet)
-        {
-            QXlsx::CellRange range = xlsx.dimension();
+        QXlsx::CellRange range = summarySheet->dimension();
 
-            // Cells are 1-based index
-            for (int row = 1; row <= range.lastRow(); row++) {
-                QString name = xlsx.read(row, 1).toString();
-                if (name == user) {
-                    // We have a match in the database with the user supplied.
-                    // Now we determine their quizzes / scores / positions based on the database.
-                    // We probably want to organise a format that is able to include all quizzes,
-                    // as the current format only supports a single quiz.
-                    qDebug() << xlsx.read(row, 2).toInt();
+        // Cells are 1-based index and first index is title
+        for (int row = 2; row <= range.lastRow(); row++) {
+            QString name = summarySheet->read(row, 1).toString();
+            // We have a match in the database with the user supplied.
+            // Now we determine their quizzes / scores / positions based on the database.
+            // We probably want to organise a format that is able to include all quizzes,
+            // as the current format only supports a single quiz.
+            if (name == user) {
+                // Loop through each quiz
+                for (int col = 2; col <= range.lastColumn(); col++) {
+                    int total, status, correct, position;
+                    // We get the title name from row 1
+                    QString quiz = summarySheet->read(1, col).toString();
+                    // We get the total for this quiz from the quiz sheet
+                    QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(QString("%1 Results").arg(quiz)));
+                    if (quizSheet == nullptr)
+                        break;
+                    // It is a formula so we need to find the value()
+                    total = quizSheet->cellAt(2,1)->value().toInt();
+                    // The summary tells us the status and the correct/position
+                    QStringList summaryDetail = summarySheet->read(row, col).toString().split(',');
+                    status = summaryDetail.first().toInt();
+                    if (status == 2) {
+                        correct = summaryDetail.last().toInt();
+                        position = total; // We are at end.
+                    }
+                    else if (status == 1) {
+                        position = summaryDetail.last().toInt();
+                        correct = 0; // Assume we haven't counted yet. Maybe we will in future?
+                    } else {
+                        position = 0; // We haven't started.
+                        correct = 0;
+                    }
+                    out << quiz << (quint16)status << (quint16)correct << (quint16)position << (quint16)total;
                 }
             }
         }
     }
+    // Complete block and return
+    out.device()->seek(0);
+    out << (quint16)(block.size() - sizeof(quint16));
+    return block;
 }

@@ -84,7 +84,7 @@ Item {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignCenter
             horizontalAlignment: Text.AlignHCenter
-            text: "Welcome, " + info.user
+            text: "Welcome, " + info.user.split(' ')[0]
             font.pointSize: 14
         }
         GridView {
