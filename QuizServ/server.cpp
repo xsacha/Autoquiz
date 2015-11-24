@@ -5,6 +5,12 @@
 //#include <QSqlDatabase>
 //#include <QSqlQuery>
 
+#ifdef WINVER
+#define XLSX_FILE "C:\\Test.xlsx"
+#else
+#define XLSX_FILE "Test.xlsx"
+#endif
+
 Server::Server(QObject *parent) : QTcpServer(parent)
 {
     QString ipAddress;
@@ -65,13 +71,25 @@ void ServerThread::run()
     QByteArray readBytes = tcpSocket.readAll();
     QDataStream in(&readBytes, QIODevice::ReadOnly);
     in.setVersion(QDataStream::Qt_5_4);
-    QString username;
-    in >> username;
-
-    if (!(username.isEmpty())) {
-        qDebug() << "User " << username << " has requested details.";
-        QByteArray block = readExcelDatabase(username);
-        tcpSocket.write(block);
+    QString command, username;
+    in >> command >> username;
+    if (command == "details") {
+        if (!(username.isEmpty())) {
+            qDebug() << "User " << username << " has requested details.";
+            QByteArray block = readExcelDatabase(username);
+            tcpSocket.write(block);
+        }
+    } else if (command == "update") {
+        QString quizName;
+        int question;
+        QString answer;
+        in >> quizName;
+        in >> question;
+        in >> answer;
+        updateUserAnswer(username, quizName, question, answer);
+        tcpSocket.write(QString("Confirmed").toLocal8Bit());
+    } else {
+        tcpSocket.write(QString("Unknown Command").toLocal8Bit());
     }
     tcpSocket.disconnectFromHost();
     if (tcpSocket.state() == QAbstractSocket::UnconnectedState ||
@@ -87,11 +105,7 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
     out.setVersion(QDataStream::Qt_5_4);
     out << (quint16)0;
 
-#ifdef WINVER
-    QXlsx::Document xlsx("C:\\Test.xlsx");
-#else
-    QXlsx::Document xlsx("test.xlsx");
-#endif
+    QXlsx::Document xlsx(XLSX_FILE);
 
     QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
     if(summarySheet)
@@ -99,8 +113,7 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
         QXlsx::CellRange range = summarySheet->dimension();
 
         // Cells are 1-based index and first index is title
-        int row = 2;
-        for (; row <= range.lastRow(); row++) {
+        for (int row = 2; row <= range.lastRow(); row++) {
             QString name = summarySheet->read(row, 1).toString();
             qDebug() << name;
             // We have a match in the database with the user supplied.
@@ -160,4 +173,25 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
     out.device()->seek(0);
     out << (quint16)(block.size() - sizeof(quint16));
     return block;
+}
+
+void updateUserAnswer(QString username, QString quizName, int question, QString answer) {
+    QXlsx::Document xlsx(XLSX_FILE);
+
+    QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(QString("%1 Results").arg(quizName)));
+
+    int lastRow = quizSheet->dimension().lastRow();
+    for (int row = 6; row <= lastRow; row++) {
+        if (quizSheet->read(row, 1).toString() == username) {
+            quizSheet->writeString(row, 1 + question, answer);
+            break;
+        }
+        // User hasn't started this quiz before, so lets add their name!
+        if (row == lastRow) {
+            ++row;
+            quizSheet->writeString(row, 1, username);
+            quizSheet->writeString(row, 1 + question, answer);
+        }
+    }
+    xlsx.save();
 }
