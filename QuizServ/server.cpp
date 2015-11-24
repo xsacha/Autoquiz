@@ -87,7 +87,11 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
     out.setVersion(QDataStream::Qt_5_4);
     out << (quint16)0;
 
+#ifdef WINVER
     QXlsx::Document xlsx("C:\\Test.xlsx");
+#else
+    QXlsx::Document xlsx("test.xlsx");
+#endif
 
     QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
     if(summarySheet)
