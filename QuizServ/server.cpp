@@ -95,8 +95,10 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
         QXlsx::CellRange range = summarySheet->dimension();
 
         // Cells are 1-based index and first index is title
-        for (int row = 2; row <= range.lastRow(); row++) {
+        int row = 2;
+        for (; row <= range.lastRow(); row++) {
             QString name = summarySheet->read(row, 1).toString();
+            qDebug() << name;
             // We have a match in the database with the user supplied.
             // Now we determine their quizzes / scores / positions based on the database.
             // We probably want to organise a format that is able to include all quizzes,
@@ -129,8 +131,26 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
                     }
                     out << quiz << (quint16)status << (quint16)correct << (quint16)position << (quint16)total;
                 }
+                break;
+            }
+            if (row == range.lastRow()) {
+                // Add new user
+                ++row;
+                summarySheet->writeString(row, 1, user);
+                // We are just initialising a new user with all zeros
+                for (int col = 2; col <= range.lastColumn(); col++) {
+                    summarySheet->writeString(row, col, "0,0");
+                    QString quiz = summarySheet->read(1, col).toString();
+
+                    QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(QString("%1 Results").arg(quiz)));
+                    out << quiz << (quint16)0 << (quint16)0 << (quint16)0 << (quint16)quizSheet->cellAt(2,1)->value().toInt();;
+                }
+                // Save the file at conclusion of changes
+                xlsx.save();
+                break;
             }
         }
+
     }
     // Complete block and return
     out.device()->seek(0);
