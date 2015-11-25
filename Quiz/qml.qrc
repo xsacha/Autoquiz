@@ -7,5 +7,6 @@
         <file>complete.png</file>
         <file>play.png</file>
         <file>suspend.png</file>
+        <file>vars.js</file>
     </qresource>
 </RCC>

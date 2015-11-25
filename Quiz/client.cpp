@@ -3,6 +3,7 @@
 #include <QDataStream>
 #include <QFile>
 #include <QTimer>
+#include <QHostAddress>
 
 // Client is started when account info is deemed 'correct' (at start, or when username is changed)
 // It immediately begins connection, followed by sending username
@@ -37,27 +38,32 @@ void Client::readResponse()
     if (this->bytesAvailable() < _blockSize)
         return;
 
-    if (dataPacket.contains("details")) {
+    QString command;
+    QDataStream readPacket(dataPacket);
+    readPacket.setVersion(QDataStream::Qt_5_4);
+    readPacket >> command;
+    if (command == "details") {
         // Populate model with details
-    while (!(in.atEnd())) {
-        QString quizName;
-        qint16 mode, correct, position, total;
-        in >> quizName >> mode >> correct >> position >> total;
-        _model->addQuiz(QuizInfo(quizName, mode, correct, position, total));
-    }
-    _loggedin = true;
-    loggedinChanged();
-    modelChanged();
-    } else if (dataPacket.contains("update")) {
-        // Check confirm response
         while (!(in.atEnd())) {
-            QString confirmText;
-            in >> confirmText;
-            // If this is "Confirmed" we are OK. Maybe check this?
+            QString quizName;
+            qint16 mode, correct, position, total;
+            in >> quizName >> mode >> correct >> position >> total;
+            _model->addQuiz(QuizInfo(quizName, mode, correct, position, total));
         }
+        _loggedin = true;
+        loggedinChanged();
+        modelChanged();
+    } else if (command == "question" || command == "update") {
+        // Receive question / answers
+        in >> _curType >> _curQuestion >> _curAnswers;
+        questionChanged();
+    } else if (command == "updatelast") {
+        // Check confirm response
+        QString confirmText;
+        in >> confirmText;
+        // If this is "Confirmed" we are OK. Maybe check this?
     }
 }
-
 void Client::displayError(QAbstractSocket::SocketError socketError)
 {
     switch (socketError) {
@@ -78,18 +84,26 @@ void Client::displayError(QAbstractSocket::SocketError socketError)
 }
 
 void Client::startConnection() {
+    if (!_sending)
+        return;
     _blockSize = 0;
     this->abort();
-    // We are grabbing the base64-encoded IP from a common shared drive.
+    // We are grabbing the IP from a common shared drive.
     // T: drive should be visible to all on a typical EQ setup.
     // We use 10.113.28.3 or eqsun2102003 -> Education Queensland | School Code | Drive 3
     QFile quizFile("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
     if (quizFile.exists()) {
         quizFile.open(QIODevice::ReadOnly);
-        QString ipAddress = QString(QByteArray::fromBase64(quizFile.readAll()));
+        QByteArray block = quizFile.readAll();
+        QDataStream in(&block, QIODevice::ReadOnly);
+        in.setVersion(QDataStream::Qt_5_4);
+        quint32 ip;
+        in >> ip;
+        QHostAddress ipHost;
+        ipHost.setAddress(ip);
         quizFile.close();
         // We are using a hardcoded port
-        this->connectToHost(ipAddress, 57849);
+        this->connectToHost(ipHost, 57849);
         // We are on a LAN so if it doesn't connect in 1.5 seconds, it is never going to connect
         // Re-attempt in 1.5 seconds, which will run this code again if not connected and no model exists.
         QTimer::singleShot(1500, this, SLOT(startConnection()));
@@ -100,14 +114,22 @@ void Client::startConnection() {
     }
 }
 
-void Client::updateDetails() {
+void Client::updateDetails(int currentQuiz, QString quizName, quint16 position, QString value) {
     _sending = true;
     if (this->state() == QAbstractSocket::ConnectedState)
         return;
-    connect(this, SIGNAL(connected()), this, SLOT(sendData()));
+
+    dataPacket = QByteArray();
     QDataStream out(&dataPacket, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_4);
-    out << "update" << _username;
+    _model->setPosition(currentQuiz, position);
+    if (_model->getPosition(currentQuiz) == _model->getTotal(currentQuiz))
+        _model->setMode(currentQuiz, 2);
+    modelChanged();
+    out << ((_model->getMode(currentQuiz) == 2) ? QString("updatelast") : QString("update"))
+        << _username << quizName << position << value;
+    _curQuestion = "";
+    questionChanged();
     startConnection();
 }
 
@@ -116,9 +138,22 @@ void Client::requestDetails() {
     if (this->state() == QAbstractSocket::ConnectedState)
         return;
 
+    dataPacket = QByteArray();
     QDataStream out(&dataPacket, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_4);
-    out << "details" << _username;
+    out << QString("details") << _username;
+    startConnection();
+}
+
+void Client::requestQuestion(QString quizName, quint16 question) {
+    _sending = true;
+    if (this->state() == QAbstractSocket::ConnectedState)
+        return;
+
+    dataPacket = QByteArray();
+    QDataStream out(&dataPacket, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_5_4);
+    out << QString("question") << _username << quizName << question;
     startConnection();
 }
 

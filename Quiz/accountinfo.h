@@ -21,6 +21,17 @@ public:
     int position() const { return _position; }
     // Total questions for this quiz
     int total() const { return _total; }
+
+    void setPosition(int position) {
+        _position = position;
+        return;
+    }
+
+    void setMode(int mode) {
+        _mode = mode;
+        return;
+    }
+
 private:
     QString _name;
     int _mode;
@@ -78,6 +89,17 @@ public:
             return -1;
         const QuizInfo &quiz = _quizs[index];
         return quiz.total();
+    }
+    Q_INVOKABLE void setMode(int index, int mode) {
+        if (index < 0 || index >= _quizs.count())
+            return;
+        _quizs[index].setMode(mode);
+    }
+
+    Q_INVOKABLE void setPosition(int index, int position) {
+        if (index < 0 || index >= _quizs.count())
+            return;
+        _quizs[index].setPosition(position);
     }
 
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const {

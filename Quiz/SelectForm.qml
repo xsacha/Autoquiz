@@ -21,6 +21,7 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onClicked: view.currentIndex = index
+                onDoubleClicked: { view.currentIndex = index; goButton.clicked(); }
             }
             gradient: Gradient {
                 GradientStop { position: 0.0; color: rectItem.GridView.isCurrentItem ? "#ddddddff" : "white" }
@@ -109,11 +110,12 @@ Item {
             delegate: detailsDelegate
         }
         Button {
+            id: goButton
             Layout.alignment: Qt.AlignCenter
-            property int currentmode: view.model.getMode(view.currentIndex)
+            property int currentmode: client.model.getMode(view.currentIndex)
             text: currentmode === 2 ? "Done" : (currentmode === 1 ? "Resume" : "Start")
             enabled: currentmode !== 2
-            onClicked: question.source = "QuestionForm.qml"
+            onClicked: { question.source = "QuestionForm.qml"; client.requestQuestion(client.model.getName(view.currentIndex), client.model.getPosition(view.currentIndex) + 1); }
         }
     }
 }
