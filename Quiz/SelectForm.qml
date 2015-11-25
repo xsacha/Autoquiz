@@ -94,8 +94,8 @@ Item {
             Layout.fillWidth: true
             populate: Transition {
                 NumberAnimation {
-                    property: "x"
-                    from: -100
+                    property: "scale"
+                    from: 0
                     duration: 500
                 }
             }
@@ -106,16 +106,16 @@ Item {
             height: Layout.height
             cellWidth: width / 3
             cellHeight: cellWidth * 2 / 3
-            model: client.model
+            onVisibleChanged: if (visible) { model = ListModel; model = client.model }
             delegate: detailsDelegate
         }
         Button {
             id: goButton
             Layout.alignment: Qt.AlignCenter
-            property int currentmode: client.model.getMode(view.currentIndex)
-            text: currentmode === 2 ? "Done" : (currentmode === 1 ? "Resume" : "Start")
-            enabled: currentmode !== 2
-            onClicked: { question.source = "QuestionForm.qml"; client.requestQuestion(client.model.getName(view.currentIndex), client.model.getPosition(view.currentIndex) + 1); }
+            text: !enabled ? "Done" : (client.model.getMode(view.currentIndex) === 1 ? "Resume" : "Start")
+            enabled: client.model.getMode(view.currentIndex) !== 2 && client.model.getPosition(view.currentIndex) > -1
+            onClicked: if (enabled) { question.source = "QuestionForm.qml"; client.requestQuestion(client.model.getName(view.currentIndex), client.model.getPosition(view.currentIndex) + 1); }
+            onEnabledChanged: if (!enabled && question.source !== "") question.source = "";
         }
     }
 }

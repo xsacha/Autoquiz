@@ -15,7 +15,7 @@ public:
     Q_PROPERTY(bool    curType MEMBER  _curType NOTIFY questionChanged)
     Q_PROPERTY(QString curQuestion MEMBER  _curQuestion NOTIFY questionChanged)
     Q_PROPERTY(QStringList curAnswers MEMBER  _curAnswers NOTIFY questionChanged)
-    Q_PROPERTY(QAbstractListModel* model READ model() NOTIFY modelChanged)
+    Q_PROPERTY(QAbstractListModel* model READ model NOTIFY modelChanged)
     explicit Client(QObject *parent = 0);
     AccountInfo* accountInfo;
 

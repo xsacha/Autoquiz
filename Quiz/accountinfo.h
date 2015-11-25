@@ -32,6 +32,11 @@ public:
         return;
     }
 
+    void setCorrect(int correct) {
+        _correct = correct;
+        return;
+    }
+
 private:
     QString _name;
     int _mode;
@@ -100,6 +105,11 @@ public:
         if (index < 0 || index >= _quizs.count())
             return;
         _quizs[index].setPosition(position);
+    }
+    Q_INVOKABLE void setCorrect(int index, int correct) {
+        if (index < 0 || index >= _quizs.count())
+            return;
+        _quizs[index].setCorrect(correct);
     }
 
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const {

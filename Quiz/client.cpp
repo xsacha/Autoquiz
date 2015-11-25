@@ -58,10 +58,11 @@ void Client::readResponse()
         in >> _curType >> _curQuestion >> _curAnswers;
         questionChanged();
     } else if (command == "updatelast") {
-        // Check confirm response
-        QString confirmText;
-        in >> confirmText;
-        // If this is "Confirmed" we are OK. Maybe check this?
+        // Check correct response
+        quint16 currentQuiz, correct;
+        in >> currentQuiz >> correct;
+        _model->setCorrect(currentQuiz, correct);
+        modelChanged();
     }
 }
 void Client::displayError(QAbstractSocket::SocketError socketError)
@@ -127,7 +128,7 @@ void Client::updateDetails(int currentQuiz, QString quizName, quint16 position, 
         _model->setMode(currentQuiz, 2);
     modelChanged();
     out << ((_model->getMode(currentQuiz) == 2) ? QString("updatelast") : QString("update"))
-        << _username << quizName << position << value;
+        << currentQuiz << _username << quizName << position << value;
     _curQuestion = "";
     questionChanged();
     startConnection();

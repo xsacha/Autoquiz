@@ -9,8 +9,6 @@ Item {
     width: 640
     height: 480
     property int currentQuiz: (parent === null) ? -1 : parent.currentQuiz;
-    property int mode: client.model.getMode(currentQuiz)
-    onModeChanged: if (mode == 2) backButton.clicked()
 
     ColumnLayout {
         anchors.fill: parent
@@ -95,7 +93,6 @@ Item {
         }
 
         Button {
-            id: backButton
             Layout.alignment: Qt.AlignBottom | Qt.AlignRight
             text: "Back"
             onClicked: root.parent.source = ""
