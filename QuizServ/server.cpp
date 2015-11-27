@@ -2,7 +2,6 @@
 #include <QtNetwork/QNetworkInterface>
 #include <QDataStream>
 #include <QFile>
-#include <xlsxdocument.h>
 #include <xlsxcellformula.h>
 //#include <QSqlDatabase>
 //#include <QSqlQuery>
@@ -159,65 +158,72 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
     QXlsx::Document xlsx(XLSX_RESULTS_FILE);
 
     QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
-    if(summarySheet)
+    if(summarySheet == nullptr)
     {
-        QXlsx::CellRange range = summarySheet->dimension();
+        createSummarySheet(&xlsx);
+        summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
+    }
+    QXlsx::CellRange range = summarySheet->dimension();
 
-        // Cells are 1-based index and first index is title
-        for (int row = 2; row <= range.lastRow(); row++) {
-            QString name = summarySheet->read(row, 1).toString();
-            // We have a match in the database with the user supplied.
-            // Now we determine their quizzes / scores / positions based on the database.
-            // We probably want to organise a format that is able to include all quizzes,
-            // as the current format only supports a single quiz.
-            if (name == user) {
-                // Loop through each quiz
-                for (int col = 2; col <= range.lastColumn(); col++) {
-                    int total, status, correct, position;
-                    // We get the title name from row 1
-                    QString quiz = summarySheet->read(1, col).toString();
-                    // We get the total for this quiz from the quiz sheet
-                    QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
-                    if (quizSheet == nullptr) {
-                        createQuizSheet(quiz);
-                        quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
-                    }
-                    // It is a formula so we need to find the value()
-                    total = quizSheet->cellAt(1,1)->value().toInt();
-                    // The summary tells us the status and the correct/position
-                    QStringList summaryDetail = summarySheet->read(row, col).toString().split(',');
-                    status = summaryDetail.first().toInt();
-                    if (status == 2) {
-                        correct = summaryDetail.last().toInt();
-                        position = total; // We are at end.
-                    }
-                    else if (status == 1) {
-                        position = summaryDetail.last().toInt();
-                        correct = 0; // Assume we haven't counted yet. Maybe we will in future?
-                    } else {
-                        position = 0; // We haven't started.
-                        correct = 0;
-                    }
-                    out << quiz << (quint16)status << (quint16)correct << (quint16)position << (quint16)total;
-                }
-                break;
-            }
-            if (row == range.lastRow()) {
-                // Add new user
-                ++row;
-                summarySheet->writeString(row, 1, user);
-                // We are just initialising a new user with all zeros
-                for (int col = 2; col <= range.lastColumn(); col++) {
-                    summarySheet->writeString(row, col, "0,0");
-                    QString quiz = summarySheet->read(1, col).toString();
+    // Cells are 1-based index and first index is title
+    for (int row = 2; row <= range.lastRow(); row++) {
+        QString name = summarySheet->read(row, 1).toString();
+        // We have a match in the database with the user supplied.
+        // Now we determine their quizzes / scores / positions based on the database.
+        // We probably want to organise a format that is able to include all quizzes,
+        // as the current format only supports a single quiz.
+        if (name == user) {
+            // Loop through each quiz
+            for (int col = 2; col <= range.lastColumn(); col++) {
+                int total, status, correct, position;
+                // We get the title name from row 1
+                QString quiz = summarySheet->read(1, col).toString();
+                // We get the total for this quiz from the quiz sheet
 
-                    QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
-                    out << quiz << (quint16)0 << (quint16)0 << (quint16)0 << (quint16)quizSheet->cellAt(1,1)->value().toInt();;
+                QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
+                if (quizSheet == nullptr) {
+                    createQuizSheet(&xlsx, quiz);
+                    quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
                 }
-                // Save the file at conclusion of changes
-                xlsx.save();
-                break;
+                // It is a formula so we need to find the value()
+                total = quizSheet->cellAt(1,1)->value().toInt();
+                // The summary tells us the status and the correct/position
+                QStringList summaryDetail = summarySheet->read(row, col).toString().split(',');
+                status = summaryDetail.first().toInt();
+                if (status == 2) {
+                    correct = summaryDetail.last().toInt();
+                    position = total; // We are at end.
+                }
+                else if (status == 1) {
+                    position = summaryDetail.last().toInt();
+                    correct = 0; // Assume we haven't counted yet. Maybe we will in future?
+                } else {
+                    position = 0; // We haven't started.
+                    correct = 0;
+                }
+                out << quiz << (quint16)status << (quint16)correct << (quint16)position << (quint16)total;
             }
+            break;
+        }
+        if (row == range.lastRow()) {
+            // Add new user
+            ++row;
+            summarySheet->writeString(row, 1, user);
+            // We are just initialising a new user with all zeros
+            for (int col = 2; col <= range.lastColumn(); col++) {
+                summarySheet->writeString(row, col, "0,0");
+                QString quiz = summarySheet->read(1, col).toString();
+
+                QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
+                if (quizSheet == nullptr) {
+                    createQuizSheet(&xlsx, quiz);
+                    quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
+                }
+                out << quiz << (quint16)0 << (quint16)0 << (quint16)0 << (quint16)quizSheet->cellAt(1,1)->value().toInt();
+            }
+            // Save the file at conclusion of changes
+            xlsx.save();
+            break;
         }
 
     }
@@ -225,35 +231,48 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
     return block;
 }
 
-void ServerThread::createQuizSheet(QString quizName) {
-    QXlsx::Document xlsx(XLSX_RESULTS_FILE);
+void ServerThread::createSummarySheet(QXlsx::Document * xlsx) {
     QXlsx::Document xlsxq(XLSX_QUESTIONS_FILE);
-    xlsx.addSheet(quizName);
+    xlsx->addSheet("Summary");
+    QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx->sheet("Summary"));
+    int i = 0;
+    QXlsx::Format boldFormat;
+    boldFormat.setFontBold(true);
+    summarySheet->write(1, 1, "Student", boldFormat);
+    foreach(QString name, xlsxq.sheetNames()) {
+        summarySheet->write(1, 2 + i, name, boldFormat);
+    }
+    xlsx->save();
+}
+
+void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
+    QXlsx::Document xlsxq(XLSX_QUESTIONS_FILE);
+    xlsx->addSheet(quizName);
     QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsxq.sheet(quizName));
     int total = questionSheet->dimension().rowCount() - 1;
-    QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
-    quizSheet->writeNumeric(1, 1, total);
-    quizSheet->writeFormula(1,2, QXlsx::CellFormula("=COUNTA(A:A)-3"));
+    QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx->sheet(quizName));
+    quizSheet->writeString(1, 1, QString::number(total));
+    quizSheet->writeFormula(1, 2, QXlsx::CellFormula("=COUNTA(A:A)-4"));
     QXlsx::Format boldFormat;
     boldFormat.setFontBold(true);
     // Count Row
     quizSheet->writeString(2, 1, "Students", boldFormat);
-    for (int i = 0; i < total; i++) {
-        quizSheet->write(2, 1 + i, i, boldFormat);
+    for (int i = 1; i <= total; i++) {
+        quizSheet->writeString(2, 1 + i, QString::number(i), boldFormat);
     }
-    quizSheet->writeString(2, 1 + total, "Total", boldFormat);
+    quizSheet->writeString(2, 2 + total, "Total", boldFormat);
     // Answer Row
-    quizSheet->writeString(2, 1, "Answer", boldFormat);
-    for (int i = 0; i < total; i++) {
-        quizSheet->write(2, 1 + i, questionSheet->cellAt(2 + i, 3)->value());
+    quizSheet->writeString(3, 1, "Answer", boldFormat);
+    for (int i = 1; i <= total; i++) {
+        quizSheet->writeString(3, 1 + i, questionSheet->cellAt(1 + i, 3)->value().toString());
     }
-    quizSheet->writeString(2, 1 + total, "Total", boldFormat);
     // Total Row
-    quizSheet->writeString(2, 1, "Total", boldFormat);
-    for (int i = 0; i < total; i++) {
-        quizSheet->writeFormula(2, 1 + i, QXlsx::CellFormula("=COUNTIF(" + QXlsx::CellReference(5, 1 + i).toString(true, false) + ":OFFSET(" + QXlsx::CellReference(5, 1 + i).toString(true, false) + ",$B$1,0)," + QXlsx::CellReference(3, 1 + i).toString(true, false) + ")"), boldFormat);
+    quizSheet->writeString(4, 1, "Total", boldFormat);
+    for (int i = 1; i <= total; i++) {
+        quizSheet->writeFormula(4, 1 + i, QXlsx::CellFormula("=COUNTIF(" + QXlsx::CellReference(5, 1 + i).toString(true, false) + ":OFFSET(" + QXlsx::CellReference(5, 1 + i).toString(true, false) + ",$B$1,0)," + QXlsx::CellReference(3, 1 + i).toString(true, false) + ")"), boldFormat);
     }
-    quizSheet->writeFormula(2, 1 + total, QXlsx::CellFormula("=SUM(B4:AO4)"), boldFormat);
+    quizSheet->writeFormula(4, 2 + total, QXlsx::CellFormula("=SUM(B4:" + QXlsx::CellReference(2, 1 + total).toString() + ")"), boldFormat);
+    xlsx->save();
 }
 
 QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, int question, QString answer) {
@@ -263,7 +282,8 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
 
     QByteArray block;
     if (quizSheet == nullptr) {
-        createQuizSheet(quizName);
+
+        createQuizSheet(&xlsx, quizName);
         quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
     }
 

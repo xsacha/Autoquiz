@@ -6,6 +6,7 @@
 #include <QtNetwork/QTcpSocket>
 #include <QThread>
 #include <QFile>
+#include <xlsxdocument.h>
 
 class Server : public QTcpServer
 {
@@ -27,7 +28,8 @@ class ServerThread : public QThread
 public:
     ServerThread(int socketDescriptor, QObject *parent);
     QByteArray readExcelDatabase(QString user);
-    void createQuizSheet(QString quizName);
+    void createSummarySheet(QXlsx::Document *xlsx);
+    void createQuizSheet(QXlsx::Document *xlsx, QString quizName);
     QByteArray updateUserAnswer(QString username, QString quizName, int question, QString answer);
     QByteArray sendUserQuestion(QString quizName, int question);
 
