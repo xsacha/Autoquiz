@@ -2,7 +2,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.2
 
-import "vars.js" as Vars
+//import "vars.js" as Vars
 
 Item {
     id: root
@@ -48,22 +48,22 @@ Item {
             visible: client.curQuestion !== ""
             ColumnLayout {
                 anchors { fill: parent; margins: 20 }
-                Layout.fillHeight: true;
-                Layout.fillWidth: true;
                 Text {
+                    Layout.fillHeight: true;
+                    Layout.fillWidth: true;
                     Layout.alignment: Qt.AlignTop
                     id: questionText
                     font.pointSize: 12
-                    text: { var str = client.curQuestion;
-                        str.replace(/{Name}/g, Vars.randName());
-                    }
+                    text: client.curQuestion
+                    wrapMode: Text.WordWrap
                 }
                 Repeater {
+                    enabled: !(client.curType)
                     id: multichoiceAnswer
-                    visible: client.curType === 0
                     Layout.alignment: Qt.AlignBottom | Qt.AlignLeft
                     model: client.curAnswers
                     RowLayout {
+                        visible: !(client.curType)
                         Button {
                             text: String.fromCharCode(65+index)
                             onClicked: client.updateDetails(currentQuiz, client.model.getName(currentQuiz), client.model.getPosition(currentQuiz) + 1, String.fromCharCode(65+index))
@@ -76,11 +76,20 @@ Item {
                 }
                 RowLayout {
                     id: shortAnswer
-                    visible: client.curType === 1
+                    visible: client.curType
                     Layout.alignment: Qt.AlignBottom | Qt.AlignLeft
-                    TextEdit {
+                    spacing: 10
+                    TextField {
+                        placeholderText: "Answer"
+                        Layout.fillWidth: true
+                        focus: visible
                         id: shortAnswerVal
                         Keys.onReturnPressed: submitButton.clicked()
+                        Layout.alignment: Qt.AlignLeft
+                    }
+                    Text {
+                        visible: text != ""
+                        text: client.curAnswers !== null && client.curAnswers.length ? client.curAnswers[0] : ""
                     }
                     Button  {
                         id: submitButton

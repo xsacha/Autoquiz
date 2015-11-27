@@ -27,6 +27,7 @@ class ServerThread : public QThread
 public:
     ServerThread(int socketDescriptor, QObject *parent);
     QByteArray readExcelDatabase(QString user);
+    void createQuizSheet(QString quizName);
     QByteArray updateUserAnswer(QString username, QString quizName, int question, QString answer);
     QByteArray sendUserQuestion(QString quizName, int question);
 

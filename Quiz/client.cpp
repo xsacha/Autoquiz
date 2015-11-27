@@ -56,6 +56,10 @@ void Client::readResponse()
     } else if (command == "question" || command == "update") {
         // Receive question / answers
         in >> _curType >> _curQuestion >> _curAnswers;
+        QStringList fname = QStringList() << "Amanda" << "Samantha" << "Alana" << "Nicole" << "Sandra" << "Tayla" << "Tia" << "Jessica" << "Yvonne" << "Michelle" << "Jane";
+        QStringList mname = QStringList() << "James" << "Simon" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Paul" << "Gregory" << "Peter";
+        _curQuestion.replace("{FName}", fname.at(rand() % fname.length()), Qt::CaseInsensitive);
+        _curQuestion.replace("{MName}", mname.at(rand() % mname.length()), Qt::CaseInsensitive);
         questionChanged();
     } else if (command == "updatelast") {
         // Check correct response
@@ -128,7 +132,7 @@ void Client::updateDetails(int currentQuiz, QString quizName, quint16 position, 
         _model->setMode(currentQuiz, 2);
     modelChanged();
     out << ((_model->getMode(currentQuiz) == 2) ? QString("updatelast") : QString("update"))
-        << currentQuiz << _username << quizName << position << value;
+        << _username << (quint16)currentQuiz << quizName << position << value;
     _curQuestion = "";
     questionChanged();
     startConnection();
