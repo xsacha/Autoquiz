@@ -1,21 +1,45 @@
 #include "server.h"
 #include <QtNetwork/QNetworkInterface>
 #include <QDataStream>
-#include <QFile>
 #include <xlsxcellformula.h>
-//#include <QSqlDatabase>
-//#include <QSqlQuery>
 
-#ifdef WINVER
-#define XLSX_RESULTS_FILE "\\\\10.113.28.1\\Data\\CoreData\\Common\\Maths\\Quiz\\Results.xlsx"
-#define XLSX_QUESTIONS_FILE "\\\\10.113.28.1\\Data\\CoreData\\Common\\Maths\\Quiz\\Questions.xlsx"
-#else
-#define XLSX_RESULTS_FILE "Results.xlsx"
-#define XLSX_RESULTS_FILE "Questions.xlsx"
-#endif
-
-Server::Server(QObject *parent) : QTcpServer(parent)
+Server::Server(QObject *parent)
+    : QTcpServer(parent)
+    #ifdef WINVER
+    , ipDiscoveryPath("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\")
+    , xlsxPath("\\\\10.113.28.1\\Data\\CoreData\\Common\\Maths\\Quiz\\")
+    #else
+    , ipDiscoveryPath("/data/build/")
+    , xlsxPath("/data/build/")
+    #endif
 {
+    if (!listen(QHostAddress::AnyIPv4, 57849)) {
+        qDebug() << "Unable to start the server: " << errorString();
+
+        close();
+        exit(0);
+        return;
+    }
+
+    QFile loadPaths("Paths.txt");
+    loadPaths.open(QIODevice::ReadOnly);
+    if (loadPaths.isOpen()) {
+        while (!loadPaths.atEnd()) {
+            QString line = QString(loadPaths.readLine()).split("//").first();
+            QStringList parts = line.split(":");
+            QString pathType = parts.first().toLower();
+            QString pathResult = parts.at(1).simplified();
+            if (parts.length() < 2)
+                continue;
+            if (pathType == "ip discovery") {
+                ipDiscoveryPath = pathResult;
+            } else if (pathType == "spreadsheets") {
+                xlsxPath = pathResult;
+            }
+        }
+        loadPaths.close();
+    }
+
     quint32 ipAddress = 0;
     QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
     // use the first non-localhost IPv4 address
@@ -29,9 +53,9 @@ Server::Server(QObject *parent) : QTcpServer(parent)
     // if we did not find one, use IPv4 localhost
     if (ipAddress == 0)
         ipAddress = QHostAddress(QHostAddress::LocalHost).toIPv4Address();
-    QFile quizFile("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
-    quizFile.open(QIODevice::WriteOnly);
-    if (!(quizFile.isOpen()))
+    quizFile = new QFile(ipDiscoveryPath+"Quiz.txt");
+    quizFile->open(QIODevice::WriteOnly);
+    if (!(quizFile->isOpen()))
     {
         qDebug() << "Unable to create file on network.";
         exit(0);
@@ -41,28 +65,21 @@ Server::Server(QObject *parent) : QTcpServer(parent)
     QDataStream out(&block, QIODevice::WriteOnly | QIODevice::Truncate);
     out.setVersion(QDataStream::Qt_5_4);
     out << ipAddress;
-    quizFile.write(block);
-    quizFile.close();
+    quizFile->write(block);
+    quizFile->close();
 
-    if (!listen(QHostAddress::AnyIPv4, 57849)) {
-        qDebug() << "Unable to start the server: " << errorString();
-
-        close();
-        exit(0);
-        return;
-    }
     qDebug() << "The server is running.";
 }
 
 void Server::incomingConnection(qintptr socketDescriptor)
 {
-    ServerThread *thread = new ServerThread(socketDescriptor, this);
+    ServerThread *thread = new ServerThread(socketDescriptor, xlsxPath, this);
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
     thread->start();
 }
 
-ServerThread::ServerThread(int socketDescriptor, QObject *parent)
-    : QThread(parent), socketDescriptor(socketDescriptor)
+ServerThread::ServerThread(int socketDescriptor, QString path, QObject *parent)
+    : QThread(parent), socketDescriptor(socketDescriptor), xlsxPath(path)
 {
 }
 
@@ -110,7 +127,7 @@ void ServerThread::run()
             // We will give them how many were correct instead of next question.
             if (command == "updatelast") {
                 quint16 correct = 0;
-                QXlsx::Document xlsx(XLSX_RESULTS_FILE);
+                QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
 
                 QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
                 int lastRow = quizSheet->dimension().lastRow();
@@ -155,7 +172,7 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
     out.setVersion(QDataStream::Qt_5_4);
     out << (quint16)0;
 
-    QXlsx::Document xlsx(XLSX_RESULTS_FILE);
+    QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
 
     QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
     if(summarySheet == nullptr)
@@ -232,7 +249,7 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
 }
 
 void ServerThread::createSummarySheet(QXlsx::Document * xlsx) {
-    QXlsx::Document xlsxq(XLSX_QUESTIONS_FILE);
+    QXlsx::Document xlsxq(xlsxPath+"Questions.xlsx");
     xlsx->addSheet("Summary");
     QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx->sheet("Summary"));
     int i = 0;
@@ -246,7 +263,7 @@ void ServerThread::createSummarySheet(QXlsx::Document * xlsx) {
 }
 
 void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
-    QXlsx::Document xlsxq(XLSX_QUESTIONS_FILE);
+    QXlsx::Document xlsxq(xlsxPath+"Questions.xlsx");
     xlsx->addSheet(quizName);
     QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsxq.sheet(quizName));
     int total = questionSheet->dimension().rowCount() - 1;
@@ -276,7 +293,7 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
 }
 
 QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, int question, QString answer) {
-    QXlsx::Document xlsx(XLSX_RESULTS_FILE);
+    QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
 
     QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
 
@@ -335,7 +352,7 @@ QByteArray ServerThread::sendUserQuestion(QString quizName, int question)
     QDataStream out(&block, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_4);
     out << (quint16)0;
-    QXlsx::Document xlsx(XLSX_QUESTIONS_FILE);
+    QXlsx::Document xlsx(xlsxPath+"Questions.xlsx");
     QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
     bool sa = true;
     QString questionStr = questionSheet->cellAt(1 + question, 1)->value().toString();

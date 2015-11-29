@@ -13,12 +13,15 @@ class Server : public QTcpServer
     Q_OBJECT
 public:
     explicit Server(QObject *parent = 0);
+    ~Server() { quizFile->remove(); delete quizFile; }
+    QString ipDiscoveryPath;
 
 protected:
     void incomingConnection(qintptr socketDescriptor) Q_DECL_OVERRIDE;
 
 private:
     QFile* quizFile;
+    QString xlsxPath;
 };
 
 class ServerThread : public QThread
@@ -26,7 +29,7 @@ class ServerThread : public QThread
     Q_OBJECT
 
 public:
-    ServerThread(int socketDescriptor, QObject *parent);
+    ServerThread(int socketDescriptor, QString path, QObject *parent);
     QByteArray readExcelDatabase(QString user);
     void createSummarySheet(QXlsx::Document *xlsx);
     void createQuizSheet(QXlsx::Document *xlsx, QString quizName);
@@ -40,6 +43,7 @@ signals:
 
 private:
     int socketDescriptor;
+    QString xlsxPath;
 };
 
 #endif // SERVER_H

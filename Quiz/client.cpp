@@ -5,6 +5,12 @@
 #include <QTimer>
 #include <QHostAddress>
 
+#ifdef WINVER
+#define QUIZPATH QString("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\")
+#else
+#define QUIZPATH QString("/data/build/")
+#endif
+
 // Client is started when account info is deemed 'correct' (at start, or when username is changed)
 // It immediately begins connection, followed by sending username
 // Then we await details.
@@ -96,7 +102,7 @@ void Client::startConnection() {
     // We are grabbing the IP from a common shared drive.
     // T: drive should be visible to all on a typical EQ setup.
     // We use 10.113.28.3 or eqsun2102003 -> Education Queensland | School Code | Drive 3
-    QFile quizFile("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz.txt");
+    QFile quizFile(QUIZPATH+"Quiz.txt");
     if (quizFile.exists()) {
         quizFile.open(QIODevice::ReadOnly);
         QByteArray block = quizFile.readAll();

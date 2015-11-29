@@ -15,4 +15,3 @@ HEADERS += \
 
 DEFINES += XLSX_NO_LIB
 include(QtXlsxWriter/src/xlsx/qtxlsx.pri)
-
