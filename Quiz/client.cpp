@@ -5,6 +5,8 @@
 #include <QTimer>
 #include <QHostAddress>
 
+
+// Should this be configurable like server?
 #ifdef WINVER
 #define QUIZPATH QString("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\")
 #else
@@ -77,20 +79,26 @@ void Client::readResponse()
 }
 void Client::displayError(QAbstractSocket::SocketError socketError)
 {
+    _connected = false;
     switch (socketError) {
     case QAbstractSocket::RemoteHostClosedError:
         break;
     case QAbstractSocket::HostNotFoundError:
         qDebug() << "The host was not found..";
+        // Server not running yet, try again in 3000 ms
+        QTimer::singleShot(3000, this, SLOT(startConnection()));
+        return;
         break;
     case QAbstractSocket::ConnectionRefusedError:
         qDebug() << "The connection was refused by the peer. "
                     "Make sure the server is running.";
+        // Server not running yet, try again in 3000 ms
+        QTimer::singleShot(3000, this, SLOT(startConnection()));
+        return;
         break;
     default:
         qDebug() << "The following error occurred: " << errorString();
     }
-    _connected = false;
     _sending = false;
 }
 
