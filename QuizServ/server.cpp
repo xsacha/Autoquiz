@@ -75,14 +75,17 @@ Server::Server(QObject *parent)
     QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
     QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
     QXlsx::Document xlsxq(xlsxPath+"Questions.xlsx");
+    QXlsx::Format boldFormat;
+    boldFormat.setFontBold(true);
     foreach(QString name, xlsxq.sheetNames()) {
-        for (int i = 2; i <= xlsx.dimension().columnCount(); i++) {
-            if (summarySheet->read(1, i).toString() == name) {
+
+        for (int i = 1; i <= summarySheet->dimension().columnCount(); i++) {
+            if (i != 1 && summarySheet->read(1, i).toString() == name) {
                 // Found it
                 QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(name));
                 if (quizSheet != nullptr) {
                     // It is possible that quizSheet doesn't exist. In this case we want to leave it alone for now.
-                    // It may not be ready yet so when it is ready and has been used, the sheet was generate.
+                    // It may not be ready yet so when it is ready and has been used, the sheet will generate.
                     int total = quizSheet->cellAt(1, 1)->value().toInt();
                     QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsxq.sheet(name));
                     int newTotal = questionSheet->dimension().rowCount();
@@ -91,23 +94,39 @@ Server::Server(QObject *parent)
                         if (total < newTotal) {
                             qDebug() << "The sheet " << name << " has less questions than it did before. This may cause issues.\nPlease fix this. Before: " << total << " Now: " << newTotal;
                         } else {
+                            qDebug() << "The sheet " << name << " has more questions than it did before. Extending answer sheet.";
+                            // Move column 2 + total to 2 + newTotal
+                            for (int r = 1; r <= quizSheet->dimension().rowCount(); r++) {
+                                quizSheet->write(r, 2 + newTotal, quizSheet->read(r, 2 + total), boldFormat);
+                                quizSheet->writeBlank(r, 2 + total);
+                            }
+                            // Fill in gaps
+                            for (int c = total + 1; c <= newTotal + 1; c++) {
+                                quizSheet->writeString(2, c, QString::number(c-1), boldFormat);
+                            }
+                            // Just replace all answers, just in case!
+                            for (int i = 1; i <= newTotal; i++) {
+                                quizSheet->writeString(3, 1 + i, questionSheet->cellAt(1 + i, 3)->value().toString());
+                            }
                             // We need code to update what happens to the sheets once the questions have changed.
                             // We can assume no real students have taken the test at this stage.
-                            // So we only need to extend the quizSheet if number of questions increased.
-                            // Probably make every student back to status 1 (if they were 2) as well.
+                            // Probably make every student back to status 1 (if they were 2).
+                            xlsx.save();
                         }
                     }
                 }
                 // On to next name
                 break;
             }
-            if (i == xlsx.dimension().columnCount()) {
+            if (i == summarySheet->dimension().columnCount()) {
                 // We don't have this quiz here yet. Add it!
-                summarySheet->writeString(1, i, name);
-                for (int j = 2; j <= xlsx.dimension().columnCount(); j++) {
+                ++i;
+                summarySheet->writeString(1, i, name, boldFormat);
+                for (int j = 2; j <= summarySheet->dimension().rowCount(); j++) {
                     // For each student, add the quiz score as status 0, position 0
                     summarySheet->write(j, i, "0,0");
                 }
+                xlsx.save();
             }
         }
     }
@@ -225,13 +244,11 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
     QXlsx::CellRange range = summarySheet->dimension();
 
     // Cells are 1-based index and first index is title
-    for (int row = 2; row <= range.lastRow(); row++) {
+    for (int row = 1; row <= range.lastRow(); row++) {
         QString name = summarySheet->read(row, 1).toString();
         // We have a match in the database with the user supplied.
         // Now we determine their quizzes / scores / positions based on the database.
-        // We probably want to organise a format that is able to include all quizzes,
-        // as the current format only supports a single quiz.
-        if (name == user) {
+        if (row != 1 && name == user) {
             // Loop through each quiz
             for (int col = 2; col <= range.lastColumn(); col++) {
                 int total, status, correct, position;
@@ -320,6 +337,7 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
         quizSheet->writeString(2, 1 + i, QString::number(i), boldFormat);
     }
     quizSheet->writeString(2, 2 + total, "Total", boldFormat);
+    quizSheet->setColumnWidth(2, 1 + total, 2.0); // Set widths for counts/answers
     // Answer Row
     quizSheet->writeString(3, 1, "Answer", boldFormat);
     for (int i = 1; i <= total; i++) {
@@ -350,13 +368,13 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
     int total = quizSheet->cellAt(1,1)->value().toInt();
 
     QXlsx::CellRange range = quizSheet->dimension();
-    for (int row = 5; row <= range.lastRow(); row++) {
+    for (int row = 5; row <= range.lastRow() + 1; row++) {
         if (quizSheet->read(row, 1).toString() == username) {
             quizSheet->writeString(row, 1 + question, answer);
             break;
         }
         // User hasn't started this quiz before, so try to add their name!
-        if (row == range.lastRow()) {
+        if (row >= range.lastRow()) {
             ++row;
             quizSheet->writeString(row, 1, username);
             quizSheet->writeString(row, 1 + question, answer);
