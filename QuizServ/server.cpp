@@ -13,6 +13,7 @@ Server::Server(QObject *parent)
     , xlsxPath("/data/build/")
     #endif
 {
+    // Start server
     if (!listen(QHostAddress::AnyIPv4, 57849)) {
         qDebug() << "Unable to start the server: " << errorString();
 
@@ -20,7 +21,9 @@ Server::Server(QObject *parent)
         exit(0);
         return;
     }
+    qDebug() << "The server is running.";
 
+    // Check if customised paths exist
     QFile loadPaths("Paths.txt");
     loadPaths.open(QIODevice::ReadOnly);
     if (loadPaths.isOpen()) {
@@ -68,7 +71,46 @@ Server::Server(QObject *parent)
     quizFile->write(block);
     quizFile->close();
 
-    qDebug() << "The server is running.";
+    // Check questions files for any updates. Update results accordingly.
+    QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
+    QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
+    QXlsx::Document xlsxq(xlsxPath+"Questions.xlsx");
+    foreach(QString name, xlsxq.sheetNames()) {
+        for (int i = 2; i <= xlsx.dimension().columnCount(); i++) {
+            if (summarySheet->read(1, i).toString() == name) {
+                // Found it
+                QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(name));
+                if (quizSheet != nullptr) {
+                    // It is possible that quizSheet doesn't exist. In this case we want to leave it alone for now.
+                    // It may not be ready yet so when it is ready and has been used, the sheet was generate.
+                    int total = quizSheet->cellAt(1, 1)->value().toInt();
+                    QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsxq.sheet(name));
+                    int newTotal = questionSheet->dimension().rowCount();
+                    // Verify we have as many questions in this sheet as we did last time we loaded it
+                    if (total != newTotal) {
+                        if (total < newTotal) {
+                            qDebug() << "The sheet " << name << " has less questions than it did before. This may cause issues.\nPlease fix this. Before: " << total << " Now: " << newTotal;
+                        } else {
+                            // We need code to update what happens to the sheets once the questions have changed.
+                            // We can assume no real students have taken the test at this stage.
+                            // So we only need to extend the quizSheet if number of questions increased.
+                            // Probably make every student back to status 1 (if they were 2) as well.
+                        }
+                    }
+                }
+                // On to next name
+                break;
+            }
+            if (i == xlsx.dimension().columnCount()) {
+                // We don't have this quiz here yet. Add it!
+                summarySheet->writeString(1, i, name);
+                for (int j = 2; j <= xlsx.dimension().columnCount(); j++) {
+                    // For each student, add the quiz score as status 0, position 0
+                    summarySheet->write(j, i, "0,0");
+                }
+            }
+        }
+    }
 }
 
 void Server::incomingConnection(qintptr socketDescriptor)
