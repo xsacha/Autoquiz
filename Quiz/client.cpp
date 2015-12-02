@@ -3,6 +3,7 @@
 #include <QDataStream>
 #include <QFile>
 #include <QTimer>
+#include <QImage>
 #include <QHostAddress>
 
 
@@ -62,10 +63,19 @@ void Client::readResponse()
         loggedinChanged();
         modelChanged();
     } else if (command == "question" || command == "update") {
-        // Receive question / answers
-        in >> _curType >> _curQuestion >> _curAnswers;
-        QStringList fname = QStringList() << "Amanda" << "Samantha" << "Alana" << "Nicole" << "Sandra" << "Tayla" << "Tia" << "Jessica" << "Yvonne" << "Michelle" << "Jane";
-        QStringList mname = QStringList() << "James" << "Simon" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Paul" << "Gregory" << "Peter";
+        // Receive question / answers / images
+        qint16 numImages;
+        in >> _curType >> _curQuestion >> _curAnswers >> numImages;
+        QList<QImage> imageList;
+        for (int image = 0; image < numImages; image++) {
+            QImage imageData;
+            // TODO: Index images in some way that can be easily obtained in QML
+            in >> imageData;
+            imageList.append(imageData);
+        }
+
+        QStringList fname = QStringList() << "Amanda" << "Samantha" << "Laura" << "Lorna" << "Alana" << "Nicole" << "Sandra" << "Tayla" << "Tia" << "Jessica" << "Yvonne" << "Michelle" << "Jane";
+        QStringList mname = QStringList() << "Adam" << "Joal" << "Phil" << "James" << "Simon" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Paul" << "Gregory" << "Peter";
         _curQuestion.replace("{FName}", fname.at(rand() % fname.length()), Qt::CaseInsensitive);
         _curQuestion.replace("{MName}", mname.at(rand() % mname.length()), Qt::CaseInsensitive);
         questionChanged();

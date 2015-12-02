@@ -12,7 +12,11 @@
 
 
 void func() {
+#ifdef WINVER
+    QFile::remove("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz\\Quiz.txt");
+#else
     QFile::remove("./Quiz.txt"); //?
+#endif
 }
 
 int main(int argc, char *argv[])

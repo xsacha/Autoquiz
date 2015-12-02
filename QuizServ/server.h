@@ -35,6 +35,7 @@ public:
     void createQuizSheet(QXlsx::Document *xlsx, QString quizName);
     QByteArray updateUserAnswer(QString username, QString quizName, int question, QString answer);
     QByteArray sendUserQuestion(QString quizName, int question);
+    QString capturedToPath(QString captured);
 
     void run() Q_DECL_OVERRIDE;
 

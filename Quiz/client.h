@@ -41,7 +41,7 @@ signals:
 private:
     QString _username;
     bool    _connected;
-    qint16  _blockSize;
+    quint32 _blockSize;
     bool    _loggedin;
     QuizModel* _model;
     bool    _sending;
