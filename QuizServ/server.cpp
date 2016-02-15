@@ -414,7 +414,7 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
     return block;
 }
 
-QString ServerThread::capturedToPath(QString captured)
+/*QString ServerThread::capturedToPath(QString captured)
 {
     captured.remove("{Img_", Qt::CaseInsensitive);
     captured.remove("}", Qt::CaseInsensitive);
@@ -422,7 +422,7 @@ QString ServerThread::capturedToPath(QString captured)
     if (!(captured.contains('.')))
         captured.append(".jpg"); // Assume jpg if not specified
     return captured;
-}
+}*/
 
 QByteArray ServerThread::sendUserQuestion(QString quizName, int question)
 {
@@ -434,8 +434,8 @@ QByteArray ServerThread::sendUserQuestion(QString quizName, int question)
     QXlsx::Document xlsx(xlsxPath+"Questions.xlsx");
     QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
     bool sa = true;
-    QString questionStr = questionSheet->cellAt(1 + question, 1)->value().toString();
-    QString answers = questionSheet->cellAt(1 + question, 2)->value().toString();
+    QString questionStr = questionSheet->read(1 + question, 1).toString();
+    QString answers = questionSheet->read(1 + question, 2).toString();
     if (answers.contains(','))
         sa = false;
     // Type: MC (0) or SA (1)

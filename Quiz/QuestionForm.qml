@@ -55,9 +55,9 @@ Item {
                         Layout.alignment: Qt.AlignTop
                         id: questionText
                         font.pointSize: 12
-                        textFormat: Text.RichText
                         text: client.curQuestion
                         wrapMode: Text.WordWrap
+                        textFormat: Text.RichText
                         clip: true
                     }
                 }
@@ -72,9 +72,9 @@ Item {
                             text: String.fromCharCode(65+index)
                             onClicked: client.updateDetails(currentQuiz, client.model.getName(currentQuiz), client.model.getPosition(currentQuiz) + 1, String.fromCharCode(65+index))
                         }
-                        // Image { } for image answers
                         Text {
                             text: modelData
+                            textFormat: Text.RichText
                             font.pointSize: 12
                         }
                     }
@@ -100,7 +100,10 @@ Item {
                         id: submitButton
                         text: "Submit"
                         Layout.alignment: Qt.AlignRight
-                        onClicked: client.updateDetails(currentQuiz, client.model.getName(currentQuiz), (client.model.getPosition(currentQuiz) + 1), shortAnswerVal.text);
+                        onClicked: {
+                            client.updateDetails(currentQuiz, client.model.getName(currentQuiz), (client.model.getPosition(currentQuiz) + 1), shortAnswerVal.text);
+                            shortAnswerVal.text = "";
+                        }
                     }
                 }
             }
