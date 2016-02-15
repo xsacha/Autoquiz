@@ -84,6 +84,10 @@ Item {
                     visible: client.curType
                     Layout.alignment: Qt.AlignBottom | Qt.AlignLeft
                     spacing: 10
+                    Text {
+                        visible: text === "$"
+                        text: client.curAnswers !== null && client.curAnswers.length ? client.curAnswers[0] : ""
+                    }
                     TextField {
                         placeholderText: "Answer"
                         Layout.fillWidth: true
@@ -93,7 +97,7 @@ Item {
                         Layout.alignment: Qt.AlignLeft
                     }
                     Text {
-                        visible: text != ""
+                        visible: text != "" && text != "$"
                         text: client.curAnswers !== null && client.curAnswers.length ? client.curAnswers[0] : ""
                     }
                     Button  {
