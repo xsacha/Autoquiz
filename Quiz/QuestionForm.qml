@@ -48,14 +48,18 @@ Item {
             visible: client.curQuestion !== ""
             ColumnLayout {
                 anchors { fill: parent; margins: 20 }
-                Text {
-                    Layout.fillHeight: true;
-                    Layout.fillWidth: true;
-                    Layout.alignment: Qt.AlignTop
-                    id: questionText
-                    font.pointSize: 12
-                    text: client.curQuestion
-                    wrapMode: Text.WordWrap
+                RowLayout {
+                    Text {
+                        Layout.fillHeight: true;
+                        Layout.fillWidth: true;
+                        Layout.alignment: Qt.AlignTop
+                        id: questionText
+                        font.pointSize: 12
+                        textFormat: Text.RichText
+                        text: client.curQuestion
+                        wrapMode: Text.WordWrap
+                        clip: true
+                    }
                 }
                 Repeater {
                     enabled: !(client.curType)
@@ -68,6 +72,7 @@ Item {
                             text: String.fromCharCode(65+index)
                             onClicked: client.updateDetails(currentQuiz, client.model.getName(currentQuiz), client.model.getPosition(currentQuiz) + 1, String.fromCharCode(65+index))
                         }
+                        // Image { } for image answers
                         Text {
                             text: modelData
                             font.pointSize: 12

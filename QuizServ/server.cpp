@@ -9,7 +9,7 @@
 Server::Server(QObject *parent)
     : QTcpServer(parent)
     #ifdef WINVER
-    , ipDiscoveryPath("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz\\")
+    , ipDiscoveryPath("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\")
     , xlsxPath("\\\\10.113.28.1\\Data\\CoreData\\Common\\Maths\\Quiz\\")
     #else
     , ipDiscoveryPath("/data/build/")
@@ -17,14 +17,13 @@ Server::Server(QObject *parent)
     #endif
 {
     // Start server
-    if (!listen(QHostAddress::AnyIPv4, 57849)) {
+    if (!listen(QHostAddress::AnyIPv4)) {
         qDebug() << "Unable to start the server: " << errorString();
 
         close();
         exit(0);
         return;
     }
-    qDebug() << "The server is running.";
 
     // Check if customised paths exist
     QFile loadPaths("Paths.txt");
@@ -49,11 +48,13 @@ Server::Server(QObject *parent)
 
 
     quint32 ipAddress = 0;
+    QString ipString;
     QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
-    // use the first non-localhost IPv4 address
+    // use the first 10.* IPv4 address. Probably bad for portability but works at PRSHS
     for (int i = 0; i < ipAddressesList.size(); ++i) {
-        if (ipAddressesList.at(i) != QHostAddress::LocalHost &&
+        if (ipAddressesList.at(i).toString().startsWith("10") &&
                 ipAddressesList.at(i).toIPv4Address()) {
+            ipString = ipAddressesList.at(i).toString();
             ipAddress = ipAddressesList.at(i).toIPv4Address();
             break;
         }
@@ -61,6 +62,8 @@ Server::Server(QObject *parent)
     // if we did not find one, use IPv4 localhost
     if (ipAddress == 0)
         ipAddress = QHostAddress(QHostAddress::LocalHost).toIPv4Address();
+
+    qDebug() << "The server is running at: " << ipString << ":" << serverPort();
     quizFile = new QFile(ipDiscoveryPath+"Quiz.txt");
     quizFile->open(QIODevice::WriteOnly);
     if (!(quizFile->isOpen()))
@@ -73,6 +76,7 @@ Server::Server(QObject *parent)
     QDataStream out(&block, QIODevice::WriteOnly | QIODevice::Truncate);
     out.setVersion(QDataStream::Qt_5_4);
     out << ipAddress;
+    out << serverPort();
     quizFile->write(block);
     quizFile->close();
 
@@ -437,43 +441,6 @@ QByteArray ServerThread::sendUserQuestion(QString quizName, int question)
     // Type: MC (0) or SA (1)
     // Question and then Answers list
     out << sa << questionStr << answers.split(',');
-    // Number of images
-    int imgCount = 0;
-    QRegularExpression re("{Img(.*)}");
-    re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-    // We are only expecting 1 image per string, maximum. So just find first capture.
-    QRegularExpressionMatch m = re.match(questionStr);
-    QList<QImage> imageList;
-    if (m.hasMatch()) {
-        imgCount++;
-        QString imagePath = capturedToPath(m.captured(0));
-        QImage imgFile(imagePath);
-        if (imgFile.isNull()) {
-            imgCount--;
-            qDebug() << "Could not locate image " << imagePath << " for " << quizName << ", Question " << question;
-        } else {
-            imageList.append(imgFile);
-        }
-    }
-    foreach(QString answer, answers.split(',')) {
-        m = re.match(answer);
-        if (m.hasMatch()) {
-            imgCount++;
-            QString imagePath = capturedToPath(m.captured(0));
-            QImage imgFile(imagePath);
-            if (imgFile.isNull()) {
-                imgCount--;
-                qDebug() << "Could not locate image " << imagePath << " for " << quizName << ", Question " << question;
-            } else {
-                imageList.append(imgFile);
-            }
-        }
-    }
-    // Send image count
-    out << (qint16)imgCount;
-    // Send images
-    foreach(QImage imgFile, imageList)
-        out << imgFile;
 
     return block;
 }

@@ -64,20 +64,17 @@ void Client::readResponse()
         modelChanged();
     } else if (command == "question" || command == "update") {
         // Receive question / answers / images
-        qint16 numImages;
-        in >> _curType >> _curQuestion >> _curAnswers >> numImages;
-        QList<QImage> imageList;
-        for (int image = 0; image < numImages; image++) {
-            QImage imageData;
-            // TODO: Index images in some way that can be easily obtained in QML
-            in >> imageData;
-            imageList.append(imageData);
-        }
-
+        in >> _curType >> _curQuestion >> _curAnswers;
         QStringList fname = QStringList() << "Amanda" << "Samantha" << "Laura" << "Lorna" << "Alana" << "Nicole" << "Sandra" << "Tayla" << "Tia" << "Jessica" << "Yvonne" << "Michelle" << "Jane";
         QStringList mname = QStringList() << "Adam" << "Joal" << "Phil" << "James" << "Simon" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Paul" << "Gregory" << "Peter";
         _curQuestion.replace("{FName}", fname.at(rand() % fname.length()), Qt::CaseInsensitive);
         _curQuestion.replace("{MName}", mname.at(rand() % mname.length()), Qt::CaseInsensitive);
+        _curQuestion.replace("{Img_","<br><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/");
+        _curQuestion.replace("}", "\">");
+        for (int i = 0; i < _curAnswers.count(); i++) {
+            _curAnswers[i].replace("{Img_","<img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/");
+            _curAnswers[i].replace("}", "\">");
+        }
         questionChanged();
     } else if (command == "updatelast") {
         // Check correct response
@@ -127,12 +124,12 @@ void Client::startConnection() {
         QDataStream in(&block, QIODevice::ReadOnly);
         in.setVersion(QDataStream::Qt_5_4);
         quint32 ip;
-        in >> ip;
+        quint16 port;
+        in >> ip >> port;
         QHostAddress ipHost;
         ipHost.setAddress(ip);
         quizFile.close();
-        // We are using a hardcoded port
-        this->connectToHost(ipHost, 57849);
+        this->connectToHost(ipHost, port);
         // We are on a LAN so if it doesn't connect in 1.5 seconds, it is never going to connect
         // Re-attempt in 1.5 seconds, which will run this code again if not connected and no model exists.
         QTimer::singleShot(1500, this, SLOT(startConnection()));

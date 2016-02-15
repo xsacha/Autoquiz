@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     app.setApplicationVersion("0.0.2");
 
     // Use system proxy except where not possible
-    QNetworkProxyFactory::setUseSystemConfiguration(true);
+    QNetworkProxyFactory::setUseSystemConfiguration(false);
 
     Client client;
 
