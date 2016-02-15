@@ -69,8 +69,8 @@ void Client::readResponse()
         QStringList mname = QStringList() << "Adam" << "Joal" << "Phil" << "James" << "Simon" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Paul" << "Gregory" << "Peter";
         _curQuestion.replace("{FName}", fname.at(rand() % fname.length()), Qt::CaseInsensitive);
         _curQuestion.replace("{MName}", mname.at(rand() % mname.length()), Qt::CaseInsensitive);
-        _curQuestion.replace("{Img_","<br><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/");
-        _curQuestion.replace("}", "\">");
+        _curQuestion.replace("{Img_","<br><table align=\"center\"><tr><td><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/");
+        _curQuestion.replace("}", "\"></td></tr></table><br>");
         for (int i = 0; i < _curAnswers.count(); i++) {
             _curAnswers[i].replace("{Img_","<img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/");
             _curAnswers[i].replace("}", "\">");

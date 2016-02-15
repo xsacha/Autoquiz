@@ -58,6 +58,9 @@ int main(int argc, char *argv[])
         return 0;
     }
     QQuickWindow *window = qobject_cast<QQuickWindow *>(comp->create());
+    window->setMinimumHeight(480);
+    window->setMinimumWidth(640);
+    //window->showMaximized();
     window->show();
 
     int ret = app.exec();

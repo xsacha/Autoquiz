@@ -7,7 +7,7 @@ import QtQuick.Layouts 1.2
 Item {
     id: root
     width: 640
-    height: 480
+    height: 640
     property int currentQuiz: (parent === null) ? -1 : parent.currentQuiz;
 
     ColumnLayout {

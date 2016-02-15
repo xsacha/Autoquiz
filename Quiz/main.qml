@@ -5,7 +5,7 @@ import QtQuick.Dialogs 1.2
 ApplicationWindow {
     visible: true
     width: 640
-    height: 480
+    height: 640
     title: qsTr("Quiz")
 
     menuBar: MenuBar {

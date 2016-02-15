@@ -5,7 +5,7 @@ import QtQuick.Layouts 1.2
 Item {
     id: root
     width: 640
-    height: 480
+    height: 640
 
     RowLayout {
         anchors.centerIn: parent
