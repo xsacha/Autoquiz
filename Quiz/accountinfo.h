@@ -89,6 +89,12 @@ public:
         const QuizInfo &quiz = _quizs[index];
         return quiz.position();
     }
+    Q_INVOKABLE int getCorrect(int index) {
+        if (index < 0 || index >= _quizs.count())
+            return -1;
+        const QuizInfo &quiz = _quizs[index];
+        return quiz.correct();
+    }
     Q_INVOKABLE int getTotal(int index) {
         if (index < 0 || index >= _quizs.count())
             return -1;

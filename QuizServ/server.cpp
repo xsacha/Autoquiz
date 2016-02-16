@@ -63,7 +63,22 @@ Server::Server(QObject *parent)
     if (ipAddress == 0)
         ipAddress = QHostAddress(QHostAddress::LocalHost).toIPv4Address();
 
-    qDebug() << qPrintable(QString("The server is running at: %1:%2").arg(ipString).arg(serverPort()));
+    QFile testFile(ipDiscoveryPath+"Quiz.txt");
+    if (testFile.exists()) {
+        testFile.open(QIODevice::ReadOnly);
+        QByteArray block = testFile.readAll();
+        QDataStream in(&block, QIODevice::ReadOnly);
+        in.setVersion(QDataStream::Qt_5_4);
+        quint32 ip;
+        in >> ip;
+        testFile.close();
+        if (ip == ipAddress) {
+            qDebug() << "Cleaning up last run on this machine.";
+        } else {
+            qDebug() << "Warning: Server was already running on another machine! Shutting down remote server.";
+        }
+    }
+    qDebug() << qPrintable(QString("The server is now running at: %1:%2").arg(ipString).arg(serverPort()));
     quizFile = new QFile(ipDiscoveryPath+"Quiz.txt");
     quizFile->open(QIODevice::WriteOnly);
     if (!(quizFile->isOpen()))
@@ -407,7 +422,7 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
         // We will give them how many were correct instead of next question.
         QDataStream out(&block, QIODevice::WriteOnly);
         out.setVersion(QDataStream::Qt_5_4);
-        out << (quint32)0 << currentQuiz << correct;
+        out << (quint32)0 << currentQuiz << (quint16)correct;
     }
     return block;
 }

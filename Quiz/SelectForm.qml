@@ -21,7 +21,7 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 onClicked: view.currentIndex = index
-                onDoubleClicked: { view.currentIndex = index; goButton.clicked(); }
+                onDoubleClicked: { view.currentIndex = index; if (goButton.enabled) goButton.clicked(); }
             }
             gradient: Gradient {
                 GradientStop { position: 0.0; color: rectItem.GridView.isCurrentItem ? "#ddddddff" : "white" }
@@ -112,21 +112,13 @@ Item {
         Button {
             id: goButton
             Layout.alignment: Qt.AlignCenter
-            text: {
-                if (client.model.getMode(view.currentIndex) !== 2 && client.model.getPosition(view.currentIndex) > -1) {
-                    enabled = true;
-                    if (client.model.getMode(view.currentIndex) === 1)
-                        return "Resume";
-                    else
-                        return "Start";
-                } else {
-                    enabled = false;
-                    if (question.source !== "")
-                        question.source = "";
-                    return "Done";
-                }
-            }
-            onClicked: if (text !== "Done") { question.source = "QuestionForm.qml"; client.requestQuestion(client.model.getName(view.currentIndex), client.model.getPosition(view.currentIndex) + 1); }
+            property string currentName: client.model.getName(view.currentIndex)
+            property int currentMode: client.model.getMode(view.currentIndex)
+            property int currentPos: client.model.getPosition(view.currentIndex)
+            enabled: currentMode != 2 && currentPos > -1 && question.source == ""
+            onCurrentModeChanged: if (!enabled) { question.source = ""; }
+            text: enabled ? (currentMode == 1 ? "Resume" : "Start") : "Done";
+            onClicked: { question.source = "QuestionForm.qml"; client.requestQuestion(currentName, currentPos + 1); }
         }
     }
 }

@@ -65,7 +65,7 @@ void Client::readResponse()
     } else if (command == "question" || command == "update") {
         // Receive question / answers / images
         in >> _curType >> _curQuestion >> _curAnswers;
-        QStringList fname = QStringList() << "Amanda" << "Samantha" << "Laura" << "Lorna" << "Alana" << "Nicole" << "Sandra" << "Tayla" << "Tia" << "Jessica" << "Yvonne" << "Michelle" << "Jane";
+        QStringList fname = QStringList() << "Amanda" << "Samantha" << "Laura" << "Lorna" << "Alana" << "Nicole" << "Sandra" << "Tayla" << "Tia" << "Jessica" << "Yvonne" << "Michelle" << "Jane" << "Irene";
         QStringList mname = QStringList() << "Adam" << "Joal" << "Phil" << "James" << "Simon" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Paul" << "Gregory" << "Peter";
         _curQuestion.replace("{FName}", fname.at(rand() % fname.length()), Qt::CaseInsensitive);
         _curQuestion.replace("{MName}", mname.at(rand() % mname.length()), Qt::CaseInsensitive);
@@ -76,13 +76,16 @@ void Client::readResponse()
             _curAnswers[i].replace("}", "\">");
         }
         questionChanged();
-        modelChanged(); // Updates UI for current question
     } else if (command == "updatelast") {
         // Check correct response
         quint16 currentQuiz, correct;
         in >> currentQuiz >> correct;
+        qDebug() << "Received: " << correct;
+        qDebug() << "Num correct: " << _model->getCorrect(currentQuiz);
         _model->setCorrect(currentQuiz, correct);
+        qDebug() << "Num correct: " << _model->getCorrect(currentQuiz);
         modelChanged(); // Updates UI for completed quiz
+        qDebug() << "Num correct: " << _model->getCorrect(currentQuiz);
     }
 }
 void Client::displayError(QAbstractSocket::SocketError socketError)
@@ -152,7 +155,7 @@ void Client::updateDetails(int currentQuiz, QString quizName, quint16 position, 
     _model->setPosition(currentQuiz, position);
     if (_model->getPosition(currentQuiz) == _model->getTotal(currentQuiz))
         _model->setMode(currentQuiz, 2);
-    modelChanged();
+    modelChanged(); // Updates Position and mode
     out << ((_model->getMode(currentQuiz) == 2) ? QString("updatelast") : QString("update"))
         << _username << (quint16)currentQuiz << quizName << position << value;
     _curQuestion = "";
