@@ -112,10 +112,21 @@ Item {
         Button {
             id: goButton
             Layout.alignment: Qt.AlignCenter
-            text: !enabled ? "Done" : (client.model.getMode(view.currentIndex) === 1 ? "Resume" : "Start")
-            enabled: client.model.getMode(view.currentIndex) !== 2 && client.model.getPosition(view.currentIndex) > -1
-            onClicked: if (enabled) { question.source = "QuestionForm.qml"; client.requestQuestion(client.model.getName(view.currentIndex), client.model.getPosition(view.currentIndex) + 1); }
-            onEnabledChanged: if (!enabled && question.source !== "") question.source = "";
+            text: {
+                if (client.model.getMode(view.currentIndex) !== 2 && client.model.getPosition(view.currentIndex) > -1) {
+                    enabled = true;
+                    if (client.model.getMode(view.currentIndex) === 1)
+                        return "Resume";
+                    else
+                        return "Start";
+                } else {
+                    enabled = false;
+                    if (question.source !== "")
+                        question.source = "";
+                    return "Done";
+                }
+            }
+            onClicked: if (text !== "Done") { question.source = "QuestionForm.qml"; client.requestQuestion(client.model.getName(view.currentIndex), client.model.getPosition(view.currentIndex) + 1); }
         }
     }
 }

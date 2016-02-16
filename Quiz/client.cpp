@@ -76,12 +76,13 @@ void Client::readResponse()
             _curAnswers[i].replace("}", "\">");
         }
         questionChanged();
+        modelChanged(); // Updates UI for current question
     } else if (command == "updatelast") {
         // Check correct response
         quint16 currentQuiz, correct;
         in >> currentQuiz >> correct;
         _model->setCorrect(currentQuiz, correct);
-        modelChanged();
+        modelChanged(); // Updates UI for completed quiz
     }
 }
 void Client::displayError(QAbstractSocket::SocketError socketError)

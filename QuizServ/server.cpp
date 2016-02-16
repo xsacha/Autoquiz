@@ -63,7 +63,7 @@ Server::Server(QObject *parent)
     if (ipAddress == 0)
         ipAddress = QHostAddress(QHostAddress::LocalHost).toIPv4Address();
 
-    qDebug() << "The server is running at: " << ipString << ":" << serverPort();
+    qDebug() << qPrintable(QString("The server is running at: %1:%2").arg(ipString).arg(serverPort()));
     quizFile = new QFile(ipDiscoveryPath+"Quiz.txt");
     quizFile->open(QIODevice::WriteOnly);
     if (!(quizFile->isOpen()))
@@ -170,7 +170,7 @@ void ServerThread::run()
     QByteArray block;
     if (command == "details") {
         if (!(username.isEmpty())) {
-            qDebug() << "User " << username << " has connected and requested details.";
+            qDebug() << "User " << username << " has connected.";
             block = readExcelDatabase(username);
         }
     } else if (command == "question") {
@@ -180,7 +180,7 @@ void ServerThread::run()
         block = sendUserQuestion(quizName, question);
     } else if (command == "update" || command == "updatelast") {
         if (!(username.isEmpty())) {
-            qDebug() << "User " << username << " has updated database.";
+            qDebug() << "User " << username << " has answered a question.";
             quint16 currentQuiz;
             // Client will want to know what quiz to update 'correct' for, in model
             in >> currentQuiz;
@@ -192,28 +192,7 @@ void ServerThread::run()
             if (answer.isEmpty())
                 answer = "-";
 
-            block = updateUserAnswer(username, quizName, question, answer);
-            // This is the last question in the quiz.
-            // We will give them how many were correct instead of next question.
-            if (command == "updatelast") {
-                quint16 correct = 0;
-                QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
-
-                QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
-                int lastRow = quizSheet->dimension().lastRow();
-                int lastCol = quizSheet->dimension().lastColumn();
-                for (int row = 5; row <= lastRow; row++) {
-                    // Found the user
-                    if (quizSheet->read(row, 1).toString() == username) {
-                        // Their total score for this quiz is in the last column
-                        correct = quizSheet->cellAt(row, lastCol)->value().toInt();
-                        break;
-                    }
-                }
-                QDataStream out(&block, QIODevice::WriteOnly);
-                out.setVersion(QDataStream::Qt_5_4);
-                out << (quint32)0 << currentQuiz << correct;
-            }
+            block = updateUserAnswer(username, quizName, question, answer, currentQuiz);
         }
     } else {
         QDataStream out(&block, QIODevice::WriteOnly);
@@ -361,7 +340,7 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
     xlsx->save();
 }
 
-QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, int question, QString answer) {
+QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, int question, QString answer, quint16 currentQuiz) {
     QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
 
     QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
@@ -375,11 +354,18 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
 
     // We need to know total to work out if we finished this quiz.
     int total = quizSheet->cellAt(1,1)->value().toInt();
+    int correct = 0;
 
     QXlsx::CellRange range = quizSheet->dimension();
     for (int row = 5; row <= range.lastRow() + 1; row++) {
         if (quizSheet->read(row, 1).toString() == username) {
             quizSheet->writeString(row, 1 + question, answer);
+            // QXlsx cannot do SUMPRODUCT until saved by Excel. So we can't just check the formula.
+            for (int col = 2; col < 2 + total; col++) {
+                if (quizSheet->cellAt(row, col)->value().toString() == quizSheet->cellAt(3, col)->value().toString())
+                    correct++;
+            }
+            //correct = quizSheet->cellAt(row, 2 + total)->value().toInt();
             break;
         }
         // User hasn't started this quiz before, so try to add their name!
@@ -398,7 +384,13 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
         if (summarySheet->read(1, col).toString() == quizName) {
             for (int row = 2; row <= range.lastRow(); row++) {
                 if (summarySheet->read(row, 1).toString() == username) {
-                    summarySheet->writeString(row, col, QString("%1,%2").arg((question == total) ? "2" : "1").arg(QString::number(question)));
+                    if (question == total) {
+                        // If we are finished we need to update status and show number of correct
+                        summarySheet->writeString(row, col, QString("2,%1").arg(QString::number(correct)));
+                    } else {
+                        // Otherwise, we are just showing current question number
+                        summarySheet->writeString(row, col, QString("1,%1").arg(QString::number(question)));
+                    }
                     break;
                 }
                 // Will already be in this sheet from when logged in. No need to check if they exist
@@ -410,6 +402,12 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
     xlsx.save();
     if (question < total) {
         block = sendUserQuestion(quizName, question + 1);
+    } else {
+        // This is the last question in the quiz.
+        // We will give them how many were correct instead of next question.
+        QDataStream out(&block, QIODevice::WriteOnly);
+        out.setVersion(QDataStream::Qt_5_4);
+        out << (quint32)0 << currentQuiz << correct;
     }
     return block;
 }

@@ -33,7 +33,7 @@ public:
     QByteArray readExcelDatabase(QString user);
     void createSummarySheet(QXlsx::Document *xlsx);
     void createQuizSheet(QXlsx::Document *xlsx, QString quizName);
-    QByteArray updateUserAnswer(QString username, QString quizName, int question, QString answer);
+    QByteArray updateUserAnswer(QString username, QString quizName, int question, QString answer, quint16 currentQuiz);
     QByteArray sendUserQuestion(QString quizName, int question);
     QString capturedToPath(QString captured);
 
