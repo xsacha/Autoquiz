@@ -80,7 +80,7 @@ Server::Server(QObject *parent)
     }
     qDebug() << qPrintable(QString("The server is now running at: %1:%2").arg(ipString).arg(serverPort()));
     quizFile = new QFile(ipDiscoveryPath+"Quiz.txt");
-    quizFile->open(QIODevice::WriteOnly);
+    quizFile->open(QIODevice::WriteOnly | QIODevice::Truncate);
     if (!(quizFile->isOpen()))
     {
         qDebug() << "Unable to create file on network.";
