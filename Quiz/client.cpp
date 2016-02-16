@@ -5,7 +5,7 @@
 #include <QTimer>
 #include <QImage>
 #include <QHostAddress>
-
+#include <QRegularExpression>
 
 // Should this be configurable like server?
 #ifdef WINVER
@@ -69,11 +69,53 @@ void Client::readResponse()
         QStringList mname = QStringList() << "Adam" << "Joal" << "Phil" << "James" << "Simon" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Paul" << "Gregory" << "Peter";
         _curQuestion.replace("{FName}", fname.at(rand() % fname.length()), Qt::CaseInsensitive);
         _curQuestion.replace("{MName}", mname.at(rand() % mname.length()), Qt::CaseInsensitive);
-        _curQuestion.replace("{Img_","<br><table align=\"center\"><tr><td><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/");
-        _curQuestion.replace("}", "\"></td></tr></table><br>");
+        QRegularExpression reimg("{Img_(.*)}");
+        reimg.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+        QRegularExpressionMatch m = reimg.match(_curQuestion);
+        if (m.hasMatch()) {
+            foreach(QString captureText, m.capturedTexts()) {
+                QString tempString = captureText;
+                tempString.replace("{Img_","<br><table align=\"center\"><tr><td><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
+                tempString.replace("}", "\"></td></tr></table><br>");
+                _curQuestion.replace(captureText, tempString);
+            }
+        }
+        QRegularExpression refrac("{Frac_(.*)}");
+        refrac.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+        m = refrac.match(_curQuestion);
+        if (m.hasMatch()) {
+            foreach(QString captureText, m.capturedTexts()) {
+                if (!(captureText.contains('/')))
+                    continue;
+                QString tempString = captureText;
+                tempString.replace("{Frac_","<sup>", Qt::CaseInsensitive);
+                tempString.replace("/", "</sup>&frasl;<sub>");
+                tempString.replace("}", "</sub>");
+                _curQuestion.replace(captureText, tempString);
+            }
+        }
         for (int i = 0; i < _curAnswers.count(); i++) {
-            _curAnswers[i].replace("{Img_","<img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/");
-            _curAnswers[i].replace("}", "\">");
+            m = reimg.match(_curAnswers[i]);
+            if (m.hasMatch()) {
+                foreach(QString captureText, m.capturedTexts()) {
+                    QString tempString = captureText;
+                    tempString.replace("{Img_","<img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
+                    tempString.replace("}", "\">");
+                    _curAnswers[i].replace(captureText, tempString);
+                }
+            }
+            m = refrac.match(_curAnswers[i]);
+            if (m.hasMatch()) {
+                foreach(QString captureText, m.capturedTexts()) {
+                    if (!(captureText.contains('/')))
+                        continue;
+                    QString tempString = captureText;
+                    tempString.replace("{Frac_","<sup>", Qt::CaseInsensitive);
+                    tempString.replace("/", "</sup>&frasl;<sub>");
+                    tempString.replace("}", "</sub>");
+                    _curAnswers[i].replace(captureText, tempString);
+                }
+            }
         }
         questionChanged();
         modelChanged(); // Updates Position and mode

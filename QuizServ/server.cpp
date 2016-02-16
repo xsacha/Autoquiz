@@ -71,12 +71,12 @@ Server::Server(QObject *parent)
         in.setVersion(QDataStream::Qt_5_4);
         quint32 ip;
         in >> ip;
-        testFile.close();
         if (ip == ipAddress) {
             qDebug() << "Cleaning up last run on this machine.";
         } else {
             qDebug() << "Warning: Server was already running on another machine! Shutting down remote server.";
         }
+        testFile.remove();
     }
     qDebug() << qPrintable(QString("The server is now running at: %1:%2").arg(ipString).arg(serverPort()));
     quizFile = new QFile(ipDiscoveryPath+"Quiz.txt");
@@ -102,6 +102,7 @@ Server::Server(QObject *parent)
     QXlsx::Format boldFormat;
     boldFormat.setFontBold(true);
     foreach(QString name, xlsxq.sheetNames()) {
+        // TODO: Restrict 'Card' sheets based on 'Quiz' results
 
         for (int i = 1; i <= summarySheet->dimension().columnCount(); i++) {
             if (i != 1 && summarySheet->read(1, i).toString() == name) {
@@ -112,13 +113,19 @@ Server::Server(QObject *parent)
                     // It may not be ready yet so when it is ready and has been used, the sheet will generate.
                     int total = quizSheet->cellAt(1, 1)->value().toInt();
                     QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsxq.sheet(name));
-                    int newTotal = questionSheet->dimension().rowCount() - 1;
+                    int newTotal;
+                    for (newTotal = 1; newTotal <= questionSheet->dimension().rowCount(); newTotal++) {
+                        if (questionSheet->read(newTotal, 1).toString() == "") {
+                            break;
+                        }
+                    }
+                    newTotal -= 2; // Ignore first row
                     // Verify we have as many questions in this sheet as we did last time we loaded it
                     if (total != newTotal) {
-                        if (total < newTotal) {
+                        if (total > newTotal) {
                             qDebug() << "The sheet " << name << " has less questions than it did before. This may cause issues.\nPlease fix this. Before: " << total << " Now: " << newTotal;
                         } else {
-                            qDebug() << "The sheet " << name << " has more questions than it did before. Extending answer sheet.";
+                            qDebug() << "The sheet " << name << " has more questions than it did before. Extending answer sheet. Before: " << total << " Now: " << newTotal;
                             // Move column 2 + total to 2 + newTotal
                             for (int r = 1; r <= quizSheet->dimension().rowCount(); r++) {
                                 quizSheet->write(r, 2 + newTotal, quizSheet->read(r, 2 + total), boldFormat);
@@ -328,7 +335,15 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
     QXlsx::Document xlsxq(xlsxPath+"Questions.xlsx");
     xlsx->addSheet(quizName);
     QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsxq.sheet(quizName));
-    int total = questionSheet->dimension().rowCount() - 1;
+    int total;
+    for (total = 1; total <= questionSheet->dimension().rowCount(); total++) {
+        if (questionSheet->read(total, 1).toString() == "") {
+            break;
+        }
+    }
+    total -= 2;
+    if (total <= 0)
+        total = 1; // Otherwise structure doesn't work and Excel will bug!
     QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx->sheet(quizName));
     quizSheet->writeString(1, 1, QString::number(total));
     quizSheet->writeFormula(1, 2, QXlsx::CellFormula("=COUNTA(A:A)-4"));
@@ -338,6 +353,7 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
     quizSheet->writeString(2, 1, "Students", boldFormat);
     for (int i = 1; i <= total; i++) {
         quizSheet->writeString(2, 1 + i, QString::number(i), boldFormat);
+        quizSheet->setColumnWidth(2, 1 + i, 1.5);
     }
     quizSheet->writeString(2, 2 + total, "Total", boldFormat);
     quizSheet->setColumnWidth(2, 1 + total, 2.0); // Set widths for counts/answers
@@ -368,7 +384,7 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
     }
 
     // We need to know total to work out if we finished this quiz.
-    int total = quizSheet->cellAt(1,1)->value().toInt();
+    int total = quizSheet->read(1,1).toInt();
     int correct = 0;
 
     QXlsx::CellRange range = quizSheet->dimension();
@@ -377,7 +393,7 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
             quizSheet->writeString(row, 1 + question, answer);
             // QXlsx cannot do SUMPRODUCT until saved by Excel. So we can't just check the formula.
             for (int col = 2; col < 2 + total; col++) {
-                if (quizSheet->cellAt(row, col)->value().toString() == quizSheet->cellAt(3, col)->value().toString())
+                if (quizSheet->read(row, col).toString() == quizSheet->read(3, col).toString())
                     correct++;
             }
             //correct = quizSheet->cellAt(row, 2 + total)->value().toInt();
