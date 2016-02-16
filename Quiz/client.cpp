@@ -76,16 +76,13 @@ void Client::readResponse()
             _curAnswers[i].replace("}", "\">");
         }
         questionChanged();
+        modelChanged(); // Updates Position and mode
     } else if (command == "updatelast") {
         // Check correct response
         quint16 currentQuiz, correct;
         in >> currentQuiz >> correct;
-        qDebug() << "Received: " << correct;
-        qDebug() << "Num correct: " << _model->getCorrect(currentQuiz);
         _model->setCorrect(currentQuiz, correct);
-        qDebug() << "Num correct: " << _model->getCorrect(currentQuiz);
         modelChanged(); // Updates UI for completed quiz
-        qDebug() << "Num correct: " << _model->getCorrect(currentQuiz);
     }
 }
 void Client::displayError(QAbstractSocket::SocketError socketError)
@@ -155,7 +152,6 @@ void Client::updateDetails(int currentQuiz, QString quizName, quint16 position, 
     _model->setPosition(currentQuiz, position);
     if (_model->getPosition(currentQuiz) == _model->getTotal(currentQuiz))
         _model->setMode(currentQuiz, 2);
-    modelChanged(); // Updates Position and mode
     out << ((_model->getMode(currentQuiz) == 2) ? QString("updatelast") : QString("update"))
         << _username << (quint16)currentQuiz << quizName << position << value;
     _curQuestion = "";

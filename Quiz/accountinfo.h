@@ -83,17 +83,17 @@ public:
         const QuizInfo &quiz = _quizs[index];
         return quiz.mode();
     }
-    Q_INVOKABLE int getPosition(int index) {
-        if (index < 0 || index >= _quizs.count())
-            return -1;
-        const QuizInfo &quiz = _quizs[index];
-        return quiz.position();
-    }
     Q_INVOKABLE int getCorrect(int index) {
         if (index < 0 || index >= _quizs.count())
             return -1;
         const QuizInfo &quiz = _quizs[index];
         return quiz.correct();
+    }
+    Q_INVOKABLE int getPosition(int index) {
+        if (index < 0 || index >= _quizs.count())
+            return -1;
+        const QuizInfo &quiz = _quizs[index];
+        return quiz.position();
     }
     Q_INVOKABLE int getTotal(int index) {
         if (index < 0 || index >= _quizs.count())
@@ -107,15 +107,15 @@ public:
         _quizs[index].setMode(mode);
     }
 
-    Q_INVOKABLE void setPosition(int index, int position) {
-        if (index < 0 || index >= _quizs.count())
-            return;
-        _quizs[index].setPosition(position);
-    }
     Q_INVOKABLE void setCorrect(int index, int correct) {
         if (index < 0 || index >= _quizs.count())
             return;
         _quizs[index].setCorrect(correct);
+    }
+    Q_INVOKABLE void setPosition(int index, int position) {
+        if (index < 0 || index >= _quizs.count())
+            return;
+        _quizs[index].setPosition(position);
     }
 
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const {
