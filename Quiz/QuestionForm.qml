@@ -58,7 +58,8 @@ Item {
                         text: client.curQuestion
                         wrapMode: Text.WordWrap
                         textFormat: Text.RichText
-                        clip: true
+                        // Affects fractions
+                        //clip: true
                     }
                 }
                 Repeater {
@@ -71,11 +72,35 @@ Item {
                         Button {
                             text: String.fromCharCode(65+index)
                             onClicked: client.updateDetails(currentQuiz, client.model.getName(currentQuiz), client.model.getPosition(currentQuiz) + 1, String.fromCharCode(65+index))
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onHoveredChanged: {
+                                    if (containsMouse)
+                                        multichoiceText.scale = 1.5;
+                                    else
+                                        multichoiceText.scale = 1.0;
+                                }
+                            }
                         }
                         Text {
+                            id: multichoiceText
+                            transformOrigin: Item.Left
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onHoveredChanged: {
+                                    if (containsMouse)
+                                        parent.scale = 1.5;
+                                    else
+                                        parent.scale = 1.0;
+                                }
+                            }
+                            Behavior on scale { NumberAnimation { duration: 300;  } }
                             text: modelData
                             textFormat: Text.RichText
                             font.pointSize: 12
+                            height: contentHeight
                         }
                     }
                 }
