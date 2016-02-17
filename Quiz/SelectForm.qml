@@ -57,7 +57,8 @@ Item {
                     }
                     Text {
                         visible: mode == 1
-                        text: "Partial Complete\n\n(Question " + position + "/" + total + ")"
+                        property int nextQ: position + 1
+                        text: "Partial Complete\n\n(Question " + nextQ + "/" + total + ")"
                         font.pointSize: 12
                         horizontalAlignment: Text.AlignHCenter
                         anchors.centerIn: parent
@@ -116,7 +117,7 @@ Item {
             property int currentMode: client.model.getMode(view.currentIndex)
             property int currentPos: client.model.getPosition(view.currentIndex)
             enabled: currentMode != 2 && currentPos > -1 && question.source == ""
-            onCurrentModeChanged: if (!enabled) { question.source = ""; }
+            onCurrentModeChanged: if (currentMode == 2 && question.source !== "") { question.source = ""; }
             text: enabled ? (currentMode == 1 ? "Resume" : "Start") : "Done";
             onClicked: { question.source = "QuestionForm.qml"; client.requestQuestion(currentName, currentPos + 1); }
         }

@@ -193,7 +193,11 @@ void Client::updateDetails(int currentQuiz, QString quizName, quint16 position, 
     QDataStream out(&dataPacket, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_5_4);
     _model->setPosition(currentQuiz, position);
-    if (_model->getPosition(currentQuiz) == _model->getTotal(currentQuiz))
+    // Mode Change 0 -> 1
+    if (position == 1)
+        _model->setMode(currentQuiz, 1);
+    // Mode Change 1 -> 2
+    if (position == _model->getTotal(currentQuiz))
         _model->setMode(currentQuiz, 2);
     out << ((_model->getMode(currentQuiz) == 2) ? QString("updatelast") : QString("update"))
         << _username << (quint16)currentQuiz << quizName << position << value;

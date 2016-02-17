@@ -155,7 +155,7 @@ Server::Server(QObject *parent)
                             for (int r = 2; r <= summarySheet->dimension().rowCount(); r++) {
                                 QString curStatus = summarySheet->read(r, i).toString();
                                 if (curStatus.length() && curStatus.at(0) == '2') {
-                                    summarySheet->writeString(r, i, QString("1,%2").arg(total + 1));
+                                    summarySheet->writeString(r, i, QString("1,%2").arg(total));
                                 }
                             }
                             // Update total so we know we don't need to update this again
