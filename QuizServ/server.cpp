@@ -488,6 +488,7 @@ QByteArray ServerThread::sendUserQuestion(QString quizName, int question)
     quizFolder.replace(".","").replace(" ","");
     questionStr.replace("{Img_", QString("{Img_%1/").arg(quizFolder));
     QString answers = questionSheet->read(1 + question, 2).toString();
+    answers.replace("{Img_", QString("{Img_%1/").arg(quizFolder));
     if (answers.contains(','))
         sa = false;
     // Type: MC (0) or SA (1)

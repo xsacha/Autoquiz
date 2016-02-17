@@ -68,8 +68,11 @@ void Client::readResponse()
         // Should list be global?
         QStringList fname = QStringList() << "Amanda" << "Samantha" << "Brianna" << "Suzanne" << "Laura" << "Lorna" << "Alana" << "Nicole" << "Sandra" << "Lisa" << "Tayla" << "Tia" << "Lia" << "Jessica" << "Cody" << "Yvonne" << "Michelle" << "Jane" << "Irene";
         QStringList mname = QStringList() << "Alex" << "Adam" << "Dan" << "Joal" << "Connor" << "Phil" << "James" << "Simon" << "Brody" << "Braiden" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Graham" << "Rob" << "Paul" << "Michael" << "Gregory" << "Peter";
-        _curQuestion.replace("{FName}", fname.at(rand() % fname.length()), Qt::CaseInsensitive);
-        _curQuestion.replace("{MName}", mname.at(rand() % mname.length()), Qt::CaseInsensitive);
+        // So the same name gets used in question and answer.
+        QString chosenFName = fname.at(rand() % fname.length());
+        QString chosenMName = mname.at(rand() % mname.length());
+        _curQuestion.replace("{FName}", chosenFName, Qt::CaseInsensitive);
+        _curQuestion.replace("{MName}", chosenMName, Qt::CaseInsensitive);
         QRegularExpression reimg("{Img_(.*)}");
         reimg.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
         QRegularExpressionMatch m = reimg.match(_curQuestion);
@@ -100,10 +103,16 @@ void Client::readResponse()
             }
         }
         for (int i = 0; i < _curAnswers.count(); i++) {
+            _curAnswers[i].replace("{FName}", chosenFName, Qt::CaseInsensitive);
+            _curAnswers[i].replace("{MName}", chosenMName, Qt::CaseInsensitive);
             m = reimg.match(_curAnswers[i]);
             if (m.hasMatch()) {
                 foreach(QString captureText, m.capturedTexts()) {
                     QString tempString = captureText;
+                    // Assume png by default.
+                    if (!(tempString.contains('.'))) {
+                        tempString.replace("}",".png}");
+                    }
                     tempString.replace("{Img_","<img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
                     tempString.replace("}", "\">");
                     _curAnswers[i].replace(captureText, tempString);
