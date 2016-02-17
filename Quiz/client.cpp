@@ -65,8 +65,9 @@ void Client::readResponse()
     } else if (command == "question" || command == "update") {
         // Receive question / answers / images
         in >> _curType >> _curQuestion >> _curAnswers;
-        QStringList fname = QStringList() << "Amanda" << "Samantha" << "Laura" << "Lorna" << "Alana" << "Nicole" << "Sandra" << "Tayla" << "Tia" << "Jessica" << "Yvonne" << "Michelle" << "Jane" << "Irene";
-        QStringList mname = QStringList() << "Adam" << "Joal" << "Phil" << "James" << "Simon" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Paul" << "Gregory" << "Peter";
+        // Should list be global?
+        QStringList fname = QStringList() << "Amanda" << "Samantha" << "Brianna" << "Suzanne" << "Laura" << "Lorna" << "Alana" << "Nicole" << "Sandra" << "Lisa" << "Tayla" << "Tia" << "Lia" << "Jessica" << "Cody" << "Yvonne" << "Michelle" << "Jane" << "Irene";
+        QStringList mname = QStringList() << "Alex" << "Adam" << "Dan" << "Joal" << "Connor" << "Phil" << "James" << "Simon" << "Brody" << "Braiden" << "Nathan" << "William" << "Sacha" << "Jamie" << "Jayden" << "Kyle" << "Graham" << "Rob" << "Paul" << "Michael" << "Gregory" << "Peter";
         _curQuestion.replace("{FName}", fname.at(rand() % fname.length()), Qt::CaseInsensitive);
         _curQuestion.replace("{MName}", mname.at(rand() % mname.length()), Qt::CaseInsensitive);
         QRegularExpression reimg("{Img_(.*)}");

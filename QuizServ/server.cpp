@@ -111,7 +111,7 @@ Server::Server(QObject *parent)
                 if (quizSheet != nullptr) {
                     // It is possible that quizSheet doesn't exist. In this case we want to leave it alone for now.
                     // It may not be ready yet so when it is ready and has been used, the sheet will generate.
-                    int total = quizSheet->cellAt(1, 1)->value().toInt();
+                    int total = quizSheet->read(1, 1).toInt();
                     QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsxq.sheet(name));
                     int newTotal;
                     for (newTotal = 1; newTotal <= questionSheet->dimension().rowCount(); newTotal++) {
@@ -126,22 +126,46 @@ Server::Server(QObject *parent)
                             qDebug() << "The sheet " << name << " has less questions than it did before. This may cause issues.\nPlease fix this. Before: " << total << " Now: " << newTotal;
                         } else {
                             qDebug() << "The sheet " << name << " has more questions than it did before. Extending answer sheet. Before: " << total << " Now: " << newTotal;
-                            // Move column 2 + total to 2 + newTotal
+                            // Clear column 2 + total (answers need to go here)
                             for (int r = 1; r <= quizSheet->dimension().rowCount(); r++) {
-                                quizSheet->write(r, 2 + newTotal, quizSheet->read(r, 2 + total), boldFormat);
                                 quizSheet->writeBlank(r, 2 + total);
                             }
+                            // Write column 2 + newTotal
+                            quizSheet->writeString(2, 2 + newTotal, "Total", boldFormat);
+                            quizSheet->writeFormula(4, 2 + newTotal, QXlsx::CellFormula("=SUM(B4:" + QXlsx::CellReference(2, 1 + newTotal).toString() + ")"), boldFormat);
+                            for (int r = 6; r <= quizSheet->dimension().rowCount(); r++) {
+                                if (quizSheet->read(r, 1).toString() != "") {
+                                    // If student exists, write the sumproduct
+                                    quizSheet->writeFormula(r, 2 + newTotal, QXlsx::CellFormula("=SUMPRODUCT(--(" + QXlsx::CellReference(r, 2).toString(false, true) + ":" + QXlsx::CellReference(r, 1 + newTotal).toString(false, true) + "=$B$3:" + QXlsx::CellReference(3, 1 + newTotal).toString(true, true) +  "))"));
+                                }
+                            }
                             // Fill in gaps
-                            for (int c = total + 1; c <= newTotal + 1; c++) {
-                                quizSheet->writeString(2, c, QString::number(c-1), boldFormat);
+                            for (int c = total; c <= newTotal; c++) {
+                                quizSheet->writeString(2, c + 1, QString::number(c), boldFormat);
+                                quizSheet->writeFormula(4, c + 1, QXlsx::CellFormula("=COUNTIF(" + QXlsx::CellReference(5, c + 1).toString(true, false) + ":OFFSET(" + QXlsx::CellReference(5, c + 1).toString(true, false) + ",$B$1,0)," + QXlsx::CellReference(3, c + 1).toString(true, false) + ")"), boldFormat);
                             }
-                            // Just replace all answers, just in case!
-                            for (int i = 1; i <= newTotal; i++) {
-                                quizSheet->writeString(3, 1 + i, questionSheet->cellAt(1 + i, 3)->value().toString());
+                            // Just replace all answers, just in case questions were updated too!
+                            for (int a = 1; a <= newTotal; a++) {
+                                quizSheet->writeString(3, a + 1, questionSheet->cellAt(a + 1, 3)->value().toString());
                             }
-                            // We need code to update what happens to the sheets once the questions have changed.
+                            // We need code to update what happens to the sheets once the questions have changed?
                             // We can assume no real students have taken the test at this stage.
-                            // Probably make every student back to status 1 (if they were 2).
+
+                            // Make every student back to status 1 (if they were 2).
+                            for (int r = 2; r <= summarySheet->dimension().rowCount(); r++) {
+                                QString curStatus = summarySheet->read(r, i).toString();
+                                if (curStatus.length() && curStatus.at(0) == '2') {
+                                    summarySheet->writeString(r, i, QString("1,%2").arg(total + 1));
+                                }
+                            }
+                            // Update total so we know we don't need to update this again
+                            quizSheet->writeString(1, 1, QString::number(newTotal));
+
+                            // Fix widths
+                            quizSheet->setColumnWidth(2, 1 + newTotal, 4.0);
+                            quizSheet->setColumnWidth(2 + newTotal, 2 + newTotal, 6.0);
+
+                            // Save
                             xlsx.save();
                         }
                     }
@@ -271,8 +295,7 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
                     createQuizSheet(&xlsx, quiz);
                     quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
                 }
-                // It is a formula so we need to find the value()
-                total = quizSheet->cellAt(1,1)->value().toInt();
+                total = quizSheet->read(1, 1).toInt();
                 // The summary tells us the status and the correct/position
                 QStringList summaryDetail = summarySheet->read(row, col).toString().split(',');
                 status = summaryDetail.first().toInt();
@@ -353,10 +376,9 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
     quizSheet->writeString(2, 1, "Students", boldFormat);
     for (int i = 1; i <= total; i++) {
         quizSheet->writeString(2, 1 + i, QString::number(i), boldFormat);
-        quizSheet->setColumnWidth(2, 1 + i, 1.5);
     }
     quizSheet->writeString(2, 2 + total, "Total", boldFormat);
-    quizSheet->setColumnWidth(2, 1 + total, 2.0); // Set widths for counts/answers
+
     // Answer Row
     quizSheet->writeString(3, 1, "Answer", boldFormat);
     for (int i = 1; i <= total; i++) {
@@ -368,6 +390,13 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
         quizSheet->writeFormula(4, 1 + i, QXlsx::CellFormula("=COUNTIF(" + QXlsx::CellReference(5, 1 + i).toString(true, false) + ":OFFSET(" + QXlsx::CellReference(5, 1 + i).toString(true, false) + ",$B$1,0)," + QXlsx::CellReference(3, 1 + i).toString(true, false) + ")"), boldFormat);
     }
     quizSheet->writeFormula(4, 2 + total, QXlsx::CellFormula("=SUM(B4:" + QXlsx::CellReference(2, 1 + total).toString() + ")"), boldFormat);
+
+    // Fix widths
+    quizSheet->setColumnWidth(1, 1, 12.0); // Student names
+    quizSheet->setColumnWidth(2, 1 + total, 4.0); // Set widths for counts/answers
+    quizSheet->setColumnWidth(2 + total, 2 + total, 6.0); // Answer text
+
+    // Save
     xlsx->save();
 }
 
@@ -442,16 +471,6 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
     }
     return block;
 }
-
-/*QString ServerThread::capturedToPath(QString captured)
-{
-    captured.remove("{Img_", Qt::CaseInsensitive);
-    captured.remove("}", Qt::CaseInsensitive);
-    captured.replace('_', '/');
-    if (!(captured.contains('.')))
-        captured.append(".jpg"); // Assume jpg if not specified
-    return captured;
-}*/
 
 QByteArray ServerThread::sendUserQuestion(QString quizName, int question)
 {
