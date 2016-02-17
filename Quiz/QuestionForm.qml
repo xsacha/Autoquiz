@@ -74,13 +74,16 @@ Item {
                             onClicked: client.updateDetails(currentQuiz, client.model.getName(currentQuiz), client.model.getPosition(currentQuiz) + 1, String.fromCharCode(65+index))
                             MouseArea {
                                 anchors.fill: parent
+                                propagateComposedEvents: true
+
+                                onClicked: mouse.accepted = false;
+                                onPressed: mouse.accepted = false;
+                                onReleased: mouse.accepted = false;
+                                onDoubleClicked: mouse.accepted = false;
+                                onPositionChanged: mouse.accepted = false;
+                                onPressAndHold: mouse.accepted = false;
                                 hoverEnabled: true
-                                onHoveredChanged: {
-                                    if (containsMouse)
-                                        multichoiceText.scale = 1.5;
-                                    else
-                                        multichoiceText.scale = 1.0;
-                                }
+                                onHoveredChanged: multichoiceText.scale = containsMouse ? 1.5 : 1.0;
                             }
                         }
                         Text {
@@ -89,12 +92,7 @@ Item {
                             MouseArea {
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onHoveredChanged: {
-                                    if (containsMouse)
-                                        parent.scale = 1.5;
-                                    else
-                                        parent.scale = 1.0;
-                                }
+                                onHoveredChanged: parent.scale = containsMouse ? 1.5 : 1.0;
                             }
                             Behavior on scale { NumberAnimation { duration: 300;  } }
                             text: modelData
