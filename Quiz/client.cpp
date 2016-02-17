@@ -76,6 +76,10 @@ void Client::readResponse()
         if (m.hasMatch()) {
             foreach(QString captureText, m.capturedTexts()) {
                 QString tempString = captureText;
+                // Assume png by default.
+                if (!(tempString.contains('.'))) {
+                    tempString.replace("}",".png}");
+                }
                 tempString.replace("{Img_","<br><table align=\"center\"><tr><td><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
                 tempString.replace("}", "\"></td></tr></table><br>");
                 _curQuestion.replace(captureText, tempString);

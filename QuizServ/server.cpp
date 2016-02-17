@@ -483,6 +483,10 @@ QByteArray ServerThread::sendUserQuestion(QString quizName, int question)
     QXlsx::Worksheet *questionSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
     bool sa = true;
     QString questionStr = questionSheet->read(1 + question, 1).toString();
+    // Add quiz folder to Img_ to make cards easier to write.
+    QString quizFolder = quizName;
+    quizFolder.replace(".","").replace(" ","");
+    questionStr.replace("{Img_", QString("{Img_%1/").arg(quizFolder));
     QString answers = questionSheet->read(1 + question, 2).toString();
     if (answers.contains(','))
         sa = false;
