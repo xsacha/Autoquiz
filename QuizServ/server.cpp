@@ -162,7 +162,7 @@ Server::Server(QObject *parent)
                             quizSheet->writeString(1, 1, QString::number(newTotal));
 
                             // Fix widths
-                            quizSheet->setColumnWidth(2, 1 + newTotal, 4.0);
+                            quizSheet->setColumnWidth(2, 1 + newTotal, 5.0);
                             quizSheet->setColumnWidth(2 + newTotal, 2 + newTotal, 6.0);
 
                             // Save
@@ -289,6 +289,11 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
                 // We get the title name from row 1
                 QString quiz = summarySheet->read(1, col).toString();
                 // We get the total for this quiz from the quiz sheet
+                if (quiz.startsWith("Card")) {
+                    // This is a 'card', which we use as a conditional quiz.
+                    // It is conditional on the results of the quiz.
+
+                }
 
                 QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
                 if (quizSheet == nullptr) {
@@ -368,8 +373,10 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
     if (total <= 0)
         total = 1; // Otherwise structure doesn't work and Excel will bug!
     QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx->sheet(quizName));
+    bool hasCards = !(quizName.startsWith("Card"));
+
     quizSheet->writeString(1, 1, QString::number(total));
-    quizSheet->writeFormula(1, 2, QXlsx::CellFormula("=COUNTA(A:A)-4"));
+    quizSheet->writeFormula(1, 2, QXlsx::CellFormula(QString("=COUNTA(A:A)-%1").arg(hasCards ? 5 : 4)));
     QXlsx::Format boldFormat;
     boldFormat.setFontBold(true);
     // Count Row
@@ -382,18 +389,27 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
     // Answer Row
     quizSheet->writeString(3, 1, "Answer", boldFormat);
     for (int i = 1; i <= total; i++) {
-        quizSheet->writeString(3, 1 + i, questionSheet->cellAt(1 + i, 3)->value().toString());
+        quizSheet->writeString(3, 1 + i, questionSheet->read(1 + i, 3).toString());
     }
+
     // Total Row
     quizSheet->writeString(4, 1, "Total", boldFormat);
     for (int i = 1; i <= total; i++) {
-        quizSheet->writeFormula(4, 1 + i, QXlsx::CellFormula("=COUNTIF(" + QXlsx::CellReference(5, 1 + i).toString(true, false) + ":OFFSET(" + QXlsx::CellReference(5, 1 + i).toString(true, false) + ",$B$1,0)," + QXlsx::CellReference(3, 1 + i).toString(true, false) + ")"), boldFormat);
+        quizSheet->writeFormula(4, 1 + i, QXlsx::CellFormula("=COUNTIF(" + QXlsx::CellReference(6, 1 + i).toString(true, false) + ":OFFSET(" + QXlsx::CellReference(6, 1 + i).toString(true, false) + ",$B$1,0)," + QXlsx::CellReference(3, 1 + i).toString(true, false) + ")"), boldFormat);
     }
-    quizSheet->writeFormula(4, 2 + total, QXlsx::CellFormula("=SUM(B4:" + QXlsx::CellReference(2, 1 + total).toString() + ")"), boldFormat);
+    quizSheet->writeFormula(4, 2 + total, QXlsx::CellFormula("=SUM(B4:" + QXlsx::CellReference(4, 1 + total).toString() + ")"), boldFormat);
+
+    // Card Row
+    if (hasCards) {
+        quizSheet->writeString(5, 1, "Card", boldFormat);
+        for (int i = 1; i <= total; i++) {
+            quizSheet->writeString(5, 1 + i, questionSheet->read(1 + i, 4).toString());
+        }
+    }
 
     // Fix widths
     quizSheet->setColumnWidth(1, 1, 12.0); // Student names
-    quizSheet->setColumnWidth(2, 1 + total, 4.0); // Set widths for counts/answers
+    quizSheet->setColumnWidth(2, 1 + total, 5.0); // Set widths for counts/answers
     quizSheet->setColumnWidth(2 + total, 2 + total, 6.0); // Answer text
 
     // Save
