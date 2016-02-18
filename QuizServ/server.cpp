@@ -9,7 +9,7 @@
 Server::Server(QObject *parent)
     : QTcpServer(parent)
     #ifdef WINVER
-    , ipDiscoveryPath("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\")
+    , ipDiscoveryPath("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz\\")
     , xlsxPath("\\\\10.113.28.1\\Data\\CoreData\\Common\\Maths\\Quiz\\")
     #else
     , ipDiscoveryPath("/data/build/")
@@ -31,13 +31,17 @@ Server::Server(QObject *parent)
     if (loadPaths.isOpen()) {
         while (!loadPaths.atEnd()) {
             QString line = QString(loadPaths.readLine()).split("//").first();
-            QStringList parts = line.split(":");
+            QStringList parts = line.split(": ");
             QString pathType = parts.first().toLower();
             QString pathResult = parts.at(1).simplified();
             if (parts.length() < 2)
                 continue;
             if (pathType == "ip discovery") {
                 ipDiscoveryPath = pathResult;
+                // Update old path. Remove this later.
+                if (ipDiscoveryPath == "\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\") {
+                    ipDiscoveryPath = "\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz\\";
+                }
             } else if (pathType == "spreadsheets") {
                 xlsxPath = pathResult;
             }
@@ -406,6 +410,7 @@ void ServerThread::createQuizSheet(QXlsx::Document *xlsx, QString quizName) {
     QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx->sheet(quizName));
     bool hasCards = !(quizName.startsWith("Card"));
 
+    quizSheet->setRowHidden(1, 1, true); // Hide the row that has # of questions and # of students
     quizSheet->writeString(1, 1, QString::number(total));
     quizSheet->writeFormula(1, 2, QXlsx::CellFormula(QString("=COUNTA(A:A)-%1").arg(hasCards ? 5 : 4)));
     QXlsx::Format boldFormat;

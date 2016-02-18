@@ -10,7 +10,7 @@
 
 // Should this be configurable like server?
 #ifdef WINVER
-#define QUIZPATH QString("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\")
+#define QUIZPATH QString("\\\\10.113.28.3\\Data\\Curriculum\\Common\\Maths\\Quiz\\")
 #else
 #define QUIZPATH QString("/data/build/")
 #endif
@@ -84,7 +84,7 @@ void Client::readResponse()
             if (!(tempString.contains('.'))) {
                 tempString.replace("}",".png}");
             }
-            tempString.replace("{Img_","<br><table align=\"center\"><tr><td><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
+            tempString.replace("{Img_","<br><table align=\"center\"><tr><td><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/Quiz/", Qt::CaseInsensitive);
             tempString.replace("}", "\"></td></tr></table><br>");
             _curQuestion.replace(captureText, tempString);
         }
@@ -112,7 +112,7 @@ void Client::readResponse()
                 if (!(tempString.contains('.'))) {
                     tempString.replace("}",".png}");
                 }
-                tempString.replace("{Img_","<img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
+                tempString.replace("{Img_","<img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/Quiz/", Qt::CaseInsensitive);
                 tempString.replace("}", "\">");
                 _curAnswers[i].replace(captureText, tempString);
             }
