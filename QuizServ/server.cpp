@@ -535,7 +535,7 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
                         cardCompare.remove("Card ");
                         if (cards.contains(cardCompare)) {
                             // Bingo
-                            quizSheet->writeString(row, c, "0,0");
+                            summarySheet->writeString(row, c, "0,0");
                             QXlsx::Worksheet *cardSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(card));
                             if (cardSheet == nullptr) {
                                 createQuizSheet(&xlsx, card);
