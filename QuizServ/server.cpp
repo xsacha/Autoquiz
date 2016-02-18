@@ -102,8 +102,6 @@ Server::Server(QObject *parent)
     QXlsx::Format boldFormat;
     boldFormat.setFontBold(true);
     foreach(QString name, xlsxq.sheetNames()) {
-        // TODO: Restrict 'Card' sheets based on 'Quiz' results
-
         for (int i = 1; i <= summarySheet->dimension().columnCount(); i++) {
             if (i != 1 && summarySheet->read(1, i).toString() == name) {
                 // Found it
@@ -177,9 +175,12 @@ Server::Server(QObject *parent)
                 // We don't have this quiz here yet. Add it!
                 ++i;
                 summarySheet->writeString(1, i, name, boldFormat);
-                for (int j = 2; j <= summarySheet->dimension().rowCount(); j++) {
-                    // For each student, add the quiz score as status 0, position 0
-                    summarySheet->write(j, i, "0,0");
+                if (!(name.startsWith("Card"))) {
+                    for (int j = 2; j <= summarySheet->dimension().rowCount(); j++) {
+                        // For each student, add the quiz score as status 0, position 0
+                        summarySheet->write(j, i, "0,0");
+                    }
+                    // TODO: Scan through user records to see if this card was required.
                 }
                 xlsx.save();
             }
@@ -259,6 +260,27 @@ void ServerThread::run()
         tcpSocket.close();
 }
 
+/*QStringList ServerThread::listOfRequiredCards(QString quizName, QString user) {
+    QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
+    QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
+    QXlsx::CellRange range = quizSheet->dimension();
+    for (int row = 6; row <= range.lastRow(); row++) {
+        QString name = quizSheet->read(row, 1).toString();
+        if (name == user) {
+
+        }
+    }
+
+    QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
+    QXlsx::CellRange summaryrange = summarySheet->dimension();
+    for (int row = 2; row <= summaryrange.lastRow(); row++) {
+        QString name = summarySheet->read(row, 1).toString();
+        if (name == user) {
+            // If card is on list, add "0,0"
+        }
+    }
+}*/
+
 // Using the QtXlsx third-party plugin, we can manipulate Excel 2007+ files from right here.
 QByteArray ServerThread::readExcelDatabase(QString user) {
     // Begin block writing for C++ model
@@ -292,7 +314,9 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
                 if (quiz.startsWith("Card")) {
                     // This is a 'card', which we use as a conditional quiz.
                     // It is conditional on the results of the quiz.
-
+                    if (summarySheet->read(row, col).toString() == "") {
+                        continue;
+                    }
                 }
 
                 QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
@@ -325,8 +349,12 @@ QByteArray ServerThread::readExcelDatabase(QString user) {
             summarySheet->writeString(row, 1, user);
             // We are just initialising a new user with all zeros
             for (int col = 2; col <= range.lastColumn(); col++) {
-                summarySheet->writeString(row, col, "0,0");
                 QString quiz = summarySheet->read(1, col).toString();
+                if (quiz.startsWith("Card")) {
+                    continue;
+                }
+
+                summarySheet->writeString(row, col, "0,0");
 
                 QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quiz));
                 if (quizSheet == nullptr) {

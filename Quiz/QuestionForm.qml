@@ -83,22 +83,25 @@ Item {
                                 onPositionChanged: mouse.accepted = false;
                                 onPressAndHold: mouse.accepted = false;
                                 hoverEnabled: true
-                                onHoveredChanged: multichoiceText.scale = containsMouse ? 1.5 : 1.0;
+                                id: buttonMouse
                             }
                         }
                         Text {
                             id: multichoiceText
                             transformOrigin: Item.Left
+                            height: contentHeight;
+                            smooth: true
+                            scale: ((buttonMouse.containsMouse || textMouse.containsMouse) && text.indexOf("<img") == -1) ? 1.5 : 1.0;
+
                             MouseArea {
+                                id: textMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onHoveredChanged: parent.scale = containsMouse ? 1.5 : 1.0;
                             }
                             Behavior on scale { NumberAnimation { duration: 300;  } }
                             text: modelData
                             textFormat: Text.RichText
                             font.pointSize: 12
-                            height: contentHeight
                         }
                     }
                 }

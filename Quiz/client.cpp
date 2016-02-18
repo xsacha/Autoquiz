@@ -73,62 +73,58 @@ void Client::readResponse()
         QString chosenMName = mname.at(rand() % mname.length());
         _curQuestion.replace("{FName}", chosenFName, Qt::CaseInsensitive);
         _curQuestion.replace("{MName}", chosenMName, Qt::CaseInsensitive);
-        QRegularExpression reimg("{Img_(.*)}");
+        QRegularExpression reimg("{Img_([^}]*)}");
         reimg.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-        QRegularExpressionMatch m = reimg.match(_curQuestion);
-        if (m.hasMatch()) {
-            foreach(QString captureText, m.capturedTexts()) {
+        QRegularExpressionMatchIterator it = reimg.globalMatch(_curQuestion);
+        while(it.hasNext()) {
+            QString captureText = it.next().captured(0);
+            QString tempString = captureText;
+            // Assume png by default.
+            if (!(tempString.contains('.'))) {
+                tempString.replace("}",".png}");
+            }
+            tempString.replace("{Img_","<br><table align=\"center\"><tr><td><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
+            tempString.replace("}", "\"></td></tr></table><br>");
+            _curQuestion.replace(captureText, tempString);
+        }
+        QRegularExpression refrac("{Frac_([^}]*)}");
+        refrac.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
+        it = refrac.globalMatch(_curQuestion);
+        while(it.hasNext()) {
+            QString captureText = it.next().captured(0);
+            QString tempString = captureText;
+            if (!(tempString.contains('/')))
+                continue;
+            tempString.replace("{Frac_","<sup>", Qt::CaseInsensitive);
+            tempString.replace("/", "</sup>&frasl;<sub>");
+            tempString.replace("}", "</sub>");
+            _curQuestion.replace(captureText, tempString);
+        }
+        for (int i = 0; i < _curAnswers.count(); i++) {
+            _curAnswers[i].replace("{FName}", chosenFName, Qt::CaseInsensitive);
+            _curAnswers[i].replace("{MName}", chosenMName, Qt::CaseInsensitive);
+            it = reimg.globalMatch(_curAnswers[i]);
+            while(it.hasNext()) {
+                QString captureText = it.next().captured(0);
                 QString tempString = captureText;
                 // Assume png by default.
                 if (!(tempString.contains('.'))) {
                     tempString.replace("}",".png}");
                 }
-                tempString.replace("{Img_","<br><table align=\"center\"><tr><td><img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
-                tempString.replace("}", "\"></td></tr></table><br>");
-                _curQuestion.replace(captureText, tempString);
+                tempString.replace("{Img_","<img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
+                tempString.replace("}", "\">");
+                _curAnswers[i].replace(captureText, tempString);
             }
-        }
-        QRegularExpression refrac("{Frac_(.*)}");
-        refrac.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
-        m = refrac.match(_curQuestion);
-        if (m.hasMatch()) {
-            foreach(QString captureText, m.capturedTexts()) {
-                if (!(captureText.contains('/')))
-                    continue;
+            it = refrac.globalMatch(_curAnswers[i]);
+            while(it.hasNext()) {
+                QString captureText = it.next().captured(0);
                 QString tempString = captureText;
+                if (!(tempString.contains('/')))
+                    continue;
                 tempString.replace("{Frac_","<sup>", Qt::CaseInsensitive);
                 tempString.replace("/", "</sup>&frasl;<sub>");
                 tempString.replace("}", "</sub>");
-                _curQuestion.replace(captureText, tempString);
-            }
-        }
-        for (int i = 0; i < _curAnswers.count(); i++) {
-            _curAnswers[i].replace("{FName}", chosenFName, Qt::CaseInsensitive);
-            _curAnswers[i].replace("{MName}", chosenMName, Qt::CaseInsensitive);
-            m = reimg.match(_curAnswers[i]);
-            if (m.hasMatch()) {
-                foreach(QString captureText, m.capturedTexts()) {
-                    QString tempString = captureText;
-                    // Assume png by default.
-                    if (!(tempString.contains('.'))) {
-                        tempString.replace("}",".png}");
-                    }
-                    tempString.replace("{Img_","<img src=\"file://10.113.28.3/Data/Curriculum/Common/Maths/", Qt::CaseInsensitive);
-                    tempString.replace("}", "\">");
-                    _curAnswers[i].replace(captureText, tempString);
-                }
-            }
-            m = refrac.match(_curAnswers[i]);
-            if (m.hasMatch()) {
-                foreach(QString captureText, m.capturedTexts()) {
-                    if (!(captureText.contains('/')))
-                        continue;
-                    QString tempString = captureText;
-                    tempString.replace("{Frac_","<sup>", Qt::CaseInsensitive);
-                    tempString.replace("/", "</sup>&frasl;<sub>");
-                    tempString.replace("}", "</sub>");
-                    _curAnswers[i].replace(captureText, tempString);
-                }
+                _curAnswers[i].replace(captureText, tempString);
             }
         }
         questionChanged();
