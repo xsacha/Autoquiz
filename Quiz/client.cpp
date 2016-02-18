@@ -6,6 +6,7 @@
 #include <QImage>
 #include <QHostAddress>
 #include <QRegularExpression>
+#include <QMessageBox>
 
 // Should this be configurable like server?
 #ifdef WINVER
@@ -188,8 +189,10 @@ void Client::startConnection() {
         QTimer::singleShot(1500, this, SLOT(startConnection()));
     } else {
         // No server turned on. Notify user?
-        // Try again in 5 seconds.
-        QTimer::singleShot(5000, this, SLOT(startConnection()));
+        // Try again in 5 seconds?
+        QMessageBox::critical(NULL, "No connection", "There is no quiz running. Please try again later.");
+        exit(0);
+        //QTimer::singleShot(5000, this, SLOT(startConnection()));
     }
 }
 

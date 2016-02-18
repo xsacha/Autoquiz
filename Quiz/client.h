@@ -46,7 +46,7 @@ private:
     QuizModel* _model;
     bool    _sending;
     QByteArray dataPacket;
-    bool _curType;
+    bool    _curType;
     QString _curQuestion;
     QStringList _curAnswers;
 };

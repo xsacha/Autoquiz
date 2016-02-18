@@ -260,7 +260,7 @@ void ServerThread::run()
         tcpSocket.close();
 }
 
-/*QStringList ServerThread::listOfRequiredCards(QString quizName, QString user) {
+QStringList ServerThread::listOfRequiredCards(QString quizName, QString user) {
     QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
     QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
     QXlsx::CellRange range = quizSheet->dimension();
@@ -279,7 +279,7 @@ void ServerThread::run()
             // If card is on list, add "0,0"
         }
     }
-}*/
+}
 
 // Using the QtXlsx third-party plugin, we can manipulate Excel 2007+ files from right here.
 QByteArray ServerThread::readExcelDatabase(QString user) {
