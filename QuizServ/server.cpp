@@ -519,13 +519,11 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
         // Check if we have to send them new card details
         if (!(quizName.startsWith("Card"))) {
             // This is a proper quiz and we need to work out the cards
-            QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
-            QXlsx::CellRange summaryRange = summarySheet->dimension();
             QStringList cards = listOfRequiredCards(quizName, username);
-            for (int row = 2; row <= summaryRange.lastRow(); row++) {
+            for (int row = 2; row <= range.lastRow(); row++) {
                 QString name = summarySheet->read(row, 1).toString();
                 if (name == username) {
-                    for (int c = 2; c <= summaryRange.lastColumn(); c++) {
+                    for (int c = 2; c <= range.lastColumn(); c++) {
                         if (summarySheet->read(row, c).toString() != "")
                             continue; // Already have this card!
                         QString card = summarySheet->read(1, c).toString();
@@ -548,7 +546,10 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
                 }
             }
         }
+        // Save the file
+        xlsx.save();
     }
+
     return block;
 }
 
