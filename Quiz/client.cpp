@@ -135,6 +135,15 @@ void Client::readResponse()
         quint16 currentQuiz, correct;
         in >> currentQuiz >> correct;
         _model->setCorrect(currentQuiz, correct);
+        if (!(_model->getName(currentQuiz).startsWith("Card"))) {
+            // This was a proper quiz, so we will be getting new cards as a result
+            while (!(in.atEnd())) {
+                QString quizName;
+                qint16 total;
+                in >> quizName >> total;
+                _model->addQuiz(QuizInfo(quizName, 0, 0, 0, total));
+            }
+        }
         modelChanged(); // Updates UI for completed quiz
     }
 }

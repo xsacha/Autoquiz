@@ -264,21 +264,24 @@ QStringList ServerThread::listOfRequiredCards(QString quizName, QString user) {
     QXlsx::Document xlsx(xlsxPath+"Results.xlsx");
     QXlsx::Worksheet *quizSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(quizName));
     QXlsx::CellRange range = quizSheet->dimension();
+    QStringList cards = QStringList();
+    int total = quizSheet->read(1,1).toInt();
     for (int row = 6; row <= range.lastRow(); row++) {
         QString name = quizSheet->read(row, 1).toString();
         if (name == user) {
-
+            for (int c = 2; c <= total + 1; c++) {
+                QString card = quizSheet->read(5, c).toString();
+                // Invalid card?
+                if (card == "" || cards.contains(card))
+                    continue;
+                // If user answer matches real answer, add the card
+                if (quizSheet->read(row, c).toString() == quizSheet->read(3, c).toString())
+                    cards.append(card);
+            }
         }
     }
-
-    QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
-    QXlsx::CellRange summaryrange = summarySheet->dimension();
-    for (int row = 2; row <= summaryrange.lastRow(); row++) {
-        QString name = summarySheet->read(row, 1).toString();
-        if (name == user) {
-            // If card is on list, add "0,0"
-        }
-    }
+    std::sort(cards.begin(),cards.end());
+    return cards;
 }
 
 // Using the QtXlsx third-party plugin, we can manipulate Excel 2007+ files from right here.
@@ -512,6 +515,39 @@ QByteArray ServerThread::updateUserAnswer(QString username, QString quizName, in
         QDataStream out(&block, QIODevice::WriteOnly);
         out.setVersion(QDataStream::Qt_5_4);
         out << (quint32)0 << currentQuiz << (quint16)correct;
+
+        // Check if we have to send them new card details
+        if (!(quizName.startsWith("Card"))) {
+            // This is a proper quiz and we need to work out the cards
+            QXlsx::Worksheet *summarySheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet("Summary"));
+            QXlsx::CellRange summaryRange = summarySheet->dimension();
+            QStringList cards = listOfRequiredCards(quizName, username);
+            for (int row = 2; row <= summaryRange.lastRow(); row++) {
+                QString name = summarySheet->read(row, 1).toString();
+                if (name == username) {
+                    for (int c = 2; c <= summaryRange.lastColumn(); c++) {
+                        if (summarySheet->read(row, c).toString() != "")
+                            continue; // Already have this card!
+                        QString card = summarySheet->read(1, c).toString();
+                        if (card == "")
+                            continue;
+                        QString cardCompare = card;
+                        cardCompare.remove("Card ");
+                        if (cards.contains(cardCompare)) {
+                            // Bingo
+                            quizSheet->writeString(row, c, "0,0");
+                            QXlsx::Worksheet *cardSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(card));
+                            if (cardSheet == nullptr) {
+                                createQuizSheet(&xlsx, card);
+                                cardSheet = dynamic_cast<QXlsx::Worksheet *>(xlsx.sheet(card));
+                            }
+                            qint16 total = cardSheet->read(1, 1).toInt();
+                            out << card << total;
+                        }
+                    }
+                }
+            }
+        }
     }
     return block;
 }

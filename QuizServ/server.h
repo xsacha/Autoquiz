@@ -36,6 +36,7 @@ public:
     QByteArray updateUserAnswer(QString username, QString quizName, int question, QString answer, quint16 currentQuiz);
     QByteArray sendUserQuestion(QString quizName, int question);
     QString capturedToPath(QString captured);
+    QStringList listOfRequiredCards(QString quizName, QString user);
 
     void run() Q_DECL_OVERRIDE;
 
